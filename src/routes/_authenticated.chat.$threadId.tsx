@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Send, Loader2, Sparkles, ImageIcon } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 
 type Msg = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
 
