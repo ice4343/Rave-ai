@@ -147,8 +147,8 @@ export const Route = createFileRoute("/api/chat")({
             } catch (e) {
               console.error("stream read error", e);
             } finally {
-              controller.close();
-              // Save assistant message + optionally update title
+              // Save assistant message + optionally update title BEFORE closing the
+              // stream, so the client's post-stream refetch sees the saved row.
               try {
                 if (fullText.trim().length > 0) {
                   await supabase.from("messages").insert({
@@ -167,6 +167,7 @@ export const Route = createFileRoute("/api/chat")({
               } catch (e) {
                 console.error("save error", e);
               }
+              controller.close();
             }
           },
         });
