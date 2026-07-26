@@ -242,6 +242,8 @@ function Bubble({
       </div>
       <div className={`msg-prose text-[0.95rem] flex-1 min-w-0 ${streaming ? "streaming-cursor" : ""}`}>
         <ReactMarkdown
+          // Default transform strips `data:` URLs, which blanks out generated images.
+          urlTransform={(url) => (url.startsWith("data:image/") ? url : defaultUrlTransform(url))}
           components={{
             img: ({ node: _n, ...props }) => (
               <img
