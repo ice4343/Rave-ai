@@ -9,16 +9,16 @@ import { Sparkles, Mail, Loader2 } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Muse — Your AI companion with personality" },
+      { title: "Rave.ai — Your AI companion with personality" },
       {
         name: "description",
         content:
-          "Chat with an AI you can shape. Set its personality, save every conversation, and pick up where you left off.",
+          "Chat with an AI you can shape. Set its personality, generate images, save every conversation.",
       },
-      { property: "og:title", content: "Muse — Your AI companion with personality" },
+      { property: "og:title", content: "Rave.ai — Your AI companion with personality" },
       {
         property: "og:description",
-        content: "A minimalist AI chat with customizable personality and saved history.",
+        content: "Minimalist AI chat with customizable personality, image generation, and saved history.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -84,9 +84,9 @@ function Landing() {
             <Sparkles className="h-3.5 w-3.5 text-primary" />
             Powered by Lovable AI
           </div>
-          <h1 className="text-4xl font-semibold tracking-tight">Meet Muse</h1>
+          <h1 className="text-4xl font-semibold tracking-tight">Rave.ai</h1>
           <p className="mt-3 text-muted-foreground">
-            A minimalist AI chat you can shape. Set its personality, keep your history, own the vibe.
+            A minimalist AI chat you can shape. Set its personality, generate images, own the vibe.
           </p>
         </div>
 
