@@ -40,7 +40,7 @@ function ChatPage() {
   const { threadId } = Route.useParams();
   const qc = useQueryClient();
   const [input, setInput] = useState("");
-  const [imageMode, setImageMode] = useState(false);
+  const [painting, setPainting] = useState(false);
   const [streaming, setStreaming] = useState("");
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
