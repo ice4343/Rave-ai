@@ -3,8 +3,26 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Loader2, Sparkles, ImageIcon } from "lucide-react";
+import { Send, Loader2, Sparkles } from "lucide-react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
+
+// Auto-detect image requests so the user never has to flip a mode switch.
+const IMAGE_INTENT =
+  /\b(?:generate|create|make|draw|paint|design|render|sketch|show me)\b[^.?!]{0,40}\b(?:image|picture|photo|photograph|illustration|drawing|painting|artwork|logo|poster|wallpaper|portrait|sketch)\b/i;
+
+function isImageRequest(text: string) {
+  return IMAGE_INTENT.test(text);
+}
+
+function toImagePrompt(text: string) {
+  const cleaned = text
+    .replace(
+      /^\s*(?:please\s+)?(?:can you\s+|could you\s+)?(?:generate|create|make|draw|paint|design|render|sketch|show me)\s+(?:me\s+)?(?:an?|some|the)?\s*(?:image|picture|photo|photograph|illustration|drawing|painting|artwork)\s*(?:of|showing|with|for)?\s*/i,
+      "",
+    )
+    .trim();
+  return cleaned.length > 2 ? cleaned : text;
+}
 
 type Msg = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
 
@@ -22,7 +40,7 @@ function ChatPage() {
   const { threadId } = Route.useParams();
   const qc = useQueryClient();
   const [input, setInput] = useState("");
-  const [imageMode, setImageMode] = useState(false);
+  const [painting, setPainting] = useState(false);
   const [streaming, setStreaming] = useState("");
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -86,19 +104,19 @@ function ChatPage() {
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
+    const wasImage = isImageRequest(text);
     setInput("");
     setBusy(true);
+    setPainting(wasImage);
     setStreaming("");
 
     const optimistic: Msg = {
       id: "optimistic-" + Date.now(),
       role: "user",
-      content: imageMode ? `🎨 ${text}` : text,
+      content: wasImage ? `🎨 ${text}` : text,
       created_at: new Date().toISOString(),
     };
     qc.setQueryData<Msg[]>(["messages", threadId], (old) => [...(old ?? []), optimistic]);
-
-    const wasImage = imageMode;
 
     try {
       const { data: sess } = await supabase.auth.getSession();
@@ -106,7 +124,7 @@ function ChatPage() {
       if (!token) throw new Error("Not signed in");
 
       if (wasImage) {
-        await sendImage(text, token);
+        await sendImage(toImagePrompt(text), token);
       } else {
         await sendText(text, token, optimistic.id);
       }
@@ -122,9 +140,11 @@ function ChatPage() {
       setStreaming("");
     } finally {
       setBusy(false);
+      setPainting(false);
       inputRef.current?.focus();
     }
   };
+
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -148,7 +168,7 @@ function ChatPage() {
               </div>
               <h2 className="text-xl font-semibold">How can I help?</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Ask anything, or toggle the image button to generate an image.
+                Ask anything — say “generate an image of…” and I'll paint it.
               </p>
             </div>
           ) : (
@@ -162,7 +182,7 @@ function ChatPage() {
                   <span className="inline-flex gap-1">
                     <Dot /> <Dot delay={0.15} /> <Dot delay={0.3} />
                   </span>
-                  {imageMode ? "Painting…" : "Thinking…"}
+                  {painting ? "Painting…" : "Thinking…"}
                 </div>
               )}
             </div>
@@ -178,24 +198,11 @@ function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={imageMode ? "Describe an image to generate…" : "Message Rave.ai…"}
+              placeholder="Message Rave.ai… or “generate an image of…”"
               rows={1}
-              className="w-full resize-none bg-transparent px-4 py-3.5 pr-24 text-sm outline-none min-h-[52px] max-h-40"
+              className="w-full resize-none bg-transparent px-4 py-3.5 pr-14 text-sm outline-none min-h-[52px] max-h-40"
             />
             <div className="absolute right-2 bottom-2 flex items-center gap-1.5">
-              <button
-                onClick={() => setImageMode((v) => !v)}
-                disabled={busy}
-                aria-label="Toggle image generation"
-                title={imageMode ? "Image mode ON" : "Generate an image"}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
-                  imageMode
-                    ? "bg-primary/15 border-primary/40 text-primary"
-                    : "border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-              >
-                <ImageIcon className="h-4 w-4" />
-              </button>
               <button
                 onClick={send}
                 disabled={busy || !input.trim()}
@@ -207,9 +214,7 @@ function ChatPage() {
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground mt-2 text-center">
-            {imageMode
-              ? "Image mode — Rave.ai will generate an image from your prompt."
-              : "Rave.ai can make mistakes. Verify important information."}
+            Rave.ai can make mistakes. Verify important information.
           </p>
         </div>
       </div>
