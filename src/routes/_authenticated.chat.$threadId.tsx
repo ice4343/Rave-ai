@@ -198,24 +198,11 @@ function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={imageMode ? "Describe an image to generate…" : "Message Rave.ai…"}
+              placeholder="Message Rave.ai… or “generate an image of…”"
               rows={1}
-              className="w-full resize-none bg-transparent px-4 py-3.5 pr-24 text-sm outline-none min-h-[52px] max-h-40"
+              className="w-full resize-none bg-transparent px-4 py-3.5 pr-14 text-sm outline-none min-h-[52px] max-h-40"
             />
             <div className="absolute right-2 bottom-2 flex items-center gap-1.5">
-              <button
-                onClick={() => setImageMode((v) => !v)}
-                disabled={busy}
-                aria-label="Toggle image generation"
-                title={imageMode ? "Image mode ON" : "Generate an image"}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
-                  imageMode
-                    ? "bg-primary/15 border-primary/40 text-primary"
-                    : "border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-              >
-                <ImageIcon className="h-4 w-4" />
-              </button>
               <button
                 onClick={send}
                 disabled={busy || !input.trim()}
@@ -227,9 +214,7 @@ function ChatPage() {
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground mt-2 text-center">
-            {imageMode
-              ? "Image mode — Rave.ai will generate an image from your prompt."
-              : "Rave.ai can make mistakes. Verify important information."}
+            Rave.ai can make mistakes. Verify important information.
           </p>
         </div>
       </div>
