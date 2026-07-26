@@ -182,7 +182,7 @@ function ChatPage() {
                   <span className="inline-flex gap-1">
                     <Dot /> <Dot delay={0.15} /> <Dot delay={0.3} />
                   </span>
-                  {imageMode ? "Painting…" : "Thinking…"}
+                  {painting ? "Painting…" : "Thinking…"}
                 </div>
               )}
             </div>
