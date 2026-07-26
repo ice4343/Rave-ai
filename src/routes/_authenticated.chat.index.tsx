@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Sparkles } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/chat")({
+export const Route = createFileRoute("/_authenticated/chat/")({
   head: () => ({
     meta: [
       { title: "Muse — Chat" },
