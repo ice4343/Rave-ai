@@ -58,6 +58,7 @@ export function Sidebar({ userEmail }: { userEmail?: string }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    qc.clear();
     navigate({ to: "/" });
   };
 
