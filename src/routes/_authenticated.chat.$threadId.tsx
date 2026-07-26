@@ -3,8 +3,26 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Loader2, Sparkles, ImageIcon } from "lucide-react";
+import { Send, Loader2, Sparkles } from "lucide-react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
+
+// Auto-detect image requests so the user never has to flip a mode switch.
+const IMAGE_INTENT =
+  /\b(?:generate|create|make|draw|paint|design|render|sketch|show me)\b[^.?!]{0,40}\b(?:image|picture|photo|photograph|illustration|drawing|painting|artwork|logo|poster|wallpaper|portrait|sketch)\b/i;
+
+function isImageRequest(text: string) {
+  return IMAGE_INTENT.test(text);
+}
+
+function toImagePrompt(text: string) {
+  const cleaned = text
+    .replace(
+      /^\s*(?:please\s+)?(?:can you\s+|could you\s+)?(?:generate|create|make|draw|paint|design|render|sketch|show me)\s+(?:me\s+)?(?:an?|some|the)?\s*(?:image|picture|photo|photograph|illustration|drawing|painting|artwork)\s*(?:of|showing|with|for)?\s*/i,
+      "",
+    )
+    .trim();
+  return cleaned.length > 2 ? cleaned : text;
+}
 
 type Msg = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
 
