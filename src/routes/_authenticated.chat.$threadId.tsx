@@ -104,19 +104,19 @@ function ChatPage() {
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
+    const wasImage = isImageRequest(text);
     setInput("");
     setBusy(true);
+    setPainting(wasImage);
     setStreaming("");
 
     const optimistic: Msg = {
       id: "optimistic-" + Date.now(),
       role: "user",
-      content: imageMode ? `🎨 ${text}` : text,
+      content: wasImage ? `🎨 ${text}` : text,
       created_at: new Date().toISOString(),
     };
     qc.setQueryData<Msg[]>(["messages", threadId], (old) => [...(old ?? []), optimistic]);
-
-    const wasImage = imageMode;
 
     try {
       const { data: sess } = await supabase.auth.getSession();
@@ -124,7 +124,7 @@ function ChatPage() {
       if (!token) throw new Error("Not signed in");
 
       if (wasImage) {
-        await sendImage(text, token);
+        await sendImage(toImagePrompt(text), token);
       } else {
         await sendText(text, token, optimistic.id);
       }
@@ -140,9 +140,11 @@ function ChatPage() {
       setStreaming("");
     } finally {
       setBusy(false);
+      setPainting(false);
       inputRef.current?.focus();
     }
   };
+
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
