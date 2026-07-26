@@ -168,7 +168,7 @@ function ChatPage() {
               </div>
               <h2 className="text-xl font-semibold">How can I help?</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Ask anything, or toggle the image button to generate an image.
+                Ask anything — say “generate an image of…” and I'll paint it.
               </p>
             </div>
           ) : (
