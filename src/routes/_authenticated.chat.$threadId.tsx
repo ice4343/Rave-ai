@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Send, Loader2, Sparkles, ImageIcon } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 
 type Msg = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
 
@@ -242,6 +242,8 @@ function Bubble({
       </div>
       <div className={`msg-prose text-[0.95rem] flex-1 min-w-0 ${streaming ? "streaming-cursor" : ""}`}>
         <ReactMarkdown
+          // Default transform strips `data:` URLs, which blanks out generated images.
+          urlTransform={(url) => (url.startsWith("data:image/") ? url : defaultUrlTransform(url))}
           components={{
             img: ({ node: _n, ...props }) => (
               <img
