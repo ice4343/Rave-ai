@@ -78,14 +78,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Muse — AI chat with personality" },
-      { name: "description", content: "A minimalist AI chat you can shape. Set its personality, keep your history." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Muse — AI chat with personality" },
-      { property: "og:description", content: "A minimalist AI chat you can shape. Set its personality, keep your history." },
+      { title: "Rave.ai — AI chat with personality" },
+      { name: "description", content: "A minimalist AI chat you can shape. Set its personality, generate images, keep your history." },
+      { name: "author", content: "Rave.ai" },
+      { property: "og:title", content: "Rave.ai — AI chat with personality" },
+      { property: "og:description", content: "Minimalist AI chat with customizable personality, image generation, and saved history." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
