@@ -1,10 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Sparkles } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chat/")({
   head: () => ({
     meta: [
-      { title: "Rave.ai — Chat" },
+      { title: "Rave.ai — New chat" },
       { name: "description", content: "Start a new AI conversation with Rave.ai." },
     ],
   }),
@@ -12,18 +15,30 @@ export const Route = createFileRoute("/_authenticated/chat/")({
 });
 
 function ChatHome() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    (async () => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+      const { data, error } = await supabase
+        .from("threads")
+        .insert({ user_id: user.user.id, title: "New chat" })
+        .select("id")
+        .single();
+      if (error || !data) return;
+      qc.invalidateQueries({ queryKey: ["threads"] });
+      navigate({ to: "/chat/$threadId", params: { threadId: data.id }, replace: true });
+    })();
+  }, [navigate, qc]);
+
   return (
-    <div className="flex-1 flex items-center justify-center p-8" style={{ backgroundImage: "var(--gradient-hero)" }}>
-      <div className="max-w-md text-center">
-        <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-5">
-          <Sparkles className="h-6 w-6 text-primary" />
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight">Ready when you are</h1>
-        <p className="mt-2 text-muted-foreground text-sm">
-          Start a new chat from the sidebar, or open a saved one. Shape Rave.ai's personality and theme in{" "}
-          <span className="text-foreground">Settings</span>.
-        </p>
-      </div>
+    <div className="flex-1 flex items-center justify-center">
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
     </div>
   );
 }
