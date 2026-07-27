@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 type ChatBody = {
   threadId: string;
   message: string;
+  image?: string | null;
 };
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/api/chat")({
         const token = authHeader.slice(7);
 
         const body = (await request.json()) as ChatBody;
-        if (!body?.threadId || !body?.message) {
+        if (!body?.threadId || (!body?.message && !body?.image)) {
           return new Response("Bad request", { status: 400 });
         }
 
@@ -61,12 +62,16 @@ export const Route = createFileRoute("/api/chat")({
         // Load personality + history
         const { data: profile } = await supabase
           .from("profiles")
-          .select("personality")
+          .select("personality, display_name")
           .eq("id", userId)
           .single();
         const personality =
           profile?.personality?.trim() ||
           "You are a helpful, friendly, and concise AI assistant.";
+        const displayName = profile?.display_name?.trim();
+        const systemPrompt = displayName
+          ? `${personality}\n\nThe user's name is ${displayName}. Address them by their name naturally, without overusing it.`
+          : personality;
 
         const { data: history } = await supabase
           .from("messages")
@@ -74,19 +79,33 @@ export const Route = createFileRoute("/api/chat")({
           .eq("thread_id", body.threadId)
           .order("created_at", { ascending: true });
 
-        // Save user message
+        // Save user message (attachment stored inline as markdown so it renders)
+        const storedUserContent = body.image
+          ? `${body.message}\n\n![attachment](${body.image})`.trim()
+          : body.message;
         const { error: insertErr } = await supabase.from("messages").insert({
           thread_id: body.threadId,
           user_id: userId,
           role: "user",
-          content: body.message,
+          content: storedUserContent,
         });
         if (insertErr) return new Response(insertErr.message, { status: 500 });
 
+        // Strip base64 payloads out of past turns to keep requests small/fast.
+        const stripImages = (t: string) =>
+          t.replace(/!\[[^\]]*\]\(data:image\/[^)]+\)/g, "[image]");
+
+        const currentContent = body.image
+          ? [
+              { type: "text", text: body.message || "What is in this image?" },
+              { type: "image_url", image_url: { url: body.image } },
+            ]
+          : body.message;
+
         const messages = [
-          { role: "system", content: personality },
-          ...(history ?? []).map((m) => ({ role: m.role, content: m.content })),
-          { role: "user", content: body.message },
+          { role: "system", content: systemPrompt },
+          ...(history ?? []).map((m) => ({ role: m.role, content: stripImages(m.content) })),
+          { role: "user", content: currentContent },
         ];
 
         const upstream = await fetch(GATEWAY, {
@@ -160,7 +179,7 @@ export const Route = createFileRoute("/api/chat")({
                 }
                 const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
                 if (isFirst) {
-                  const title = body.message.slice(0, 60).replace(/\s+/g, " ").trim() || "New chat";
+                  const title = (body.message || "Image chat").slice(0, 60).replace(/\s+/g, " ").trim() || "New chat";
                   updates.title = title;
                 }
                 await supabase.from("threads").update(updates).eq("id", body.threadId);
