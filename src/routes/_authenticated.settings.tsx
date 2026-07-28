@@ -42,7 +42,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
       { property: "og:description", content: "Personality, themes, text size and chat controls." },
     ],
   }),
-  component: Settings;
+  component: Settings,
 });
 
 const PRESETS = [
