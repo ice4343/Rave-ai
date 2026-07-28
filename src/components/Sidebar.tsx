@@ -1,8 +1,8 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Settings, MessageSquare, Sparkles } from "lucide-react";
-import { memo, useState } from "react";
+import { Plus, Trash2, Settings, MessageSquare, Search, X } from "lucide-react";
+import { memo, useMemo, useState } from "react";
 
 type Thread = { id: string; title: string; updated_at: string };
 
@@ -19,6 +19,7 @@ export const Sidebar = memo(function Sidebar({
   const qc = useQueryClient();
   const params = useParams({ strict: false }) as { threadId?: string };
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
 
   const { data: threads = [] } = useQuery({
     queryKey: ["threads"],
@@ -32,6 +33,12 @@ export const Sidebar = memo(function Sidebar({
       return data ?? [];
     },
   });
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return threads;
+    return threads.filter((t) => (t.title || "New chat").toLowerCase().includes(q));
+  }, [threads, query]);
 
   const newChat = async () => {
     if (creating) return;
@@ -57,7 +64,6 @@ export const Sidebar = memo(function Sidebar({
   };
 
   const deleteThread = async (id: string) => {
-    // Optimistic — no toast, instant feel.
     qc.setQueryData<Thread[]>(["threads"], (old) => (old ?? []).filter((t) => t.id !== id));
     if (params.threadId === id) {
       onClose();
@@ -72,44 +78,67 @@ export const Sidebar = memo(function Sidebar({
     <>
       <div
         onClick={onClose}
-        className={`fixed inset-0 z-30 bg-black/60 transition-opacity duration-200 ${
+        className={`fixed inset-0 z-30 bg-black/50 backdrop-blur-[2px] transition-opacity duration-200 ${
           open ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         aria-hidden
       />
       <aside
-        className={`fixed z-40 top-0 left-0 h-[100dvh] w-[82vw] max-w-xs flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground will-change-transform transition-transform duration-200 ease-out ${
+        className={`glass-strong fixed z-40 top-0 left-0 h-[100dvh] w-[84vw] max-w-xs flex flex-col border-r border-[var(--glass-border)] text-sidebar-foreground will-change-transform transition-transform duration-250 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="px-4 pt-[env(safe-area-inset-top)] pb-3 border-b border-sidebar-border">
-          <div className="flex items-center gap-2 min-w-0 h-14">
-            <div className="h-8 w-8 shrink-0 rounded-lg bg-primary flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
+        <div className="px-3 pt-[env(safe-area-inset-top)] pb-3">
+          <div className="flex items-center gap-2 min-w-0 h-14 px-1">
+            <div className="h-8 w-8 shrink-0 rounded-xl bg-primary/90 flex items-center justify-center text-primary-foreground text-sm font-bold">
+              R
             </div>
-            <div className="min-w-0">
-              <div className="font-semibold text-sm leading-tight truncate">Rave.ai</div>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-sm leading-tight truncate">
+                Rave<span className="text-primary">.ai</span>
+              </div>
               <div className="text-[11px] text-muted-foreground truncate">AI with personality</div>
             </div>
           </div>
+
+          {/* Search chats */}
+          <div className="relative mb-2.5">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search chats"
+              className="glass w-full rounded-full pl-9 pr-9 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/40 transition"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground active:bg-accent/70"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
           <button
             onClick={newChat}
             disabled={creating}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium py-3 active:scale-[0.98] transition disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground text-sm font-medium py-3 active:scale-[0.98] transition disabled:opacity-60 shadow-lg shadow-primary/20"
           >
             <Plus className="h-4 w-4" />
             New chat
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scroll py-2 overscroll-contain">
-          {threads.length === 0 ? (
+        <div className="flex-1 overflow-y-auto custom-scroll py-1 overscroll-contain">
+          {filtered.length === 0 ? (
             <div className="px-4 py-8 text-xs text-muted-foreground text-center">
-              No conversations yet.
+              {query ? "No chats match that search." : "No conversations yet."}
             </div>
           ) : (
             <ul className="px-2 space-y-0.5">
-              {threads.map((t) => {
+              {filtered.map((t) => {
                 const active = params.threadId === t.id;
                 return (
                   <li key={t.id} className="relative">
@@ -117,13 +146,15 @@ export const Sidebar = memo(function Sidebar({
                       to="/chat/$threadId"
                       params={{ threadId: t.id }}
                       onClick={onClose}
-                      className={`flex items-center gap-2 rounded-xl pl-3 pr-10 py-3 text-sm transition ${
+                      className={`flex items-center gap-2.5 rounded-2xl pl-3 pr-10 py-3 text-sm transition ${
                         active
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground/85 active:bg-sidebar-accent/60"
+                          ? "bg-primary/15 text-foreground border border-primary/25"
+                          : "text-sidebar-foreground/85 active:bg-sidebar-accent/60 border border-transparent"
                       }`}
                     >
-                      <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <MessageSquare
+                        className={`h-3.5 w-3.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`}
+                      />
                       <span className="truncate flex-1">{t.title || "New chat"}</span>
                     </Link>
                     <button
@@ -133,7 +164,7 @@ export const Sidebar = memo(function Sidebar({
                         deleteThread(t.id);
                       }}
                       aria-label="Delete chat"
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-muted-foreground active:text-destructive active:bg-destructive/15 transition"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-2 text-muted-foreground active:text-destructive active:bg-destructive/15 transition"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -144,11 +175,11 @@ export const Sidebar = memo(function Sidebar({
           )}
         </div>
 
-        <div className="p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] border-t border-sidebar-border">
+        <div className="p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] border-t border-[var(--glass-border)]">
           <Link
             to="/settings"
             onClick={onClose}
-            className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm active:bg-sidebar-accent/60 transition"
+            className="glass flex items-center gap-3 rounded-2xl px-3 py-3 text-sm active:bg-sidebar-accent/60 transition"
           >
             <div className="h-8 w-8 shrink-0 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-[11px] font-medium text-primary">
               {userEmail?.[0]?.toUpperCase() ?? "?"}
