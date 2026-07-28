@@ -2,8 +2,8 @@ import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/session";
 import { Sidebar } from "@/components/Sidebar";
-import { Loader2, Menu, Plus, Sparkles } from "lucide-react";
-import { applyTheme, loadTheme } from "@/lib/theme";
+import { Loader2, Menu, Plus } from "lucide-react";
+import { applySettings, loadSettings } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -26,34 +26,45 @@ function Layout() {
   }, [session, loading, navigate]);
 
   useEffect(() => {
-    applyTheme(loadTheme());
+    applySettings(loadSettings());
   }, []);
 
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
 
-  // Swipe left→right opens the sidebar, right→left closes it.
+  // Horizontal swipe from anywhere on screen: right opens, left closes.
   useEffect(() => {
     let startX = 0;
     let startY = 0;
     let tracking = false;
     let decided = false;
 
+    const isScrollableX = (target: EventTarget | null) => {
+      let el = target as HTMLElement | null;
+      while (el && el !== document.body) {
+        if (el.scrollWidth > el.clientWidth + 4) {
+          const style = getComputedStyle(el).overflowX;
+          if (style === "auto" || style === "scroll") return true;
+        }
+        el = el.parentElement;
+      }
+      return false;
+    };
+
     const onStart = (e: TouchEvent) => {
       const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
       decided = false;
-      // Open gesture must begin near the left edge; close gesture anywhere.
-      tracking = openRef.current || startX < 40;
+      tracking = !isScrollableX(e.target);
     };
     const onMove = (e: TouchEvent) => {
       if (!tracking || decided) return;
       const t = e.touches[0];
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
-      if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
       decided = true;
       if (dx > 0 && !openRef.current) setSidebarOpen(true);
       else if (dx < 0 && openRef.current) setSidebarOpen(false);
@@ -94,31 +105,30 @@ function Layout() {
   }
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden">
+    <div className="app-aurora relative flex h-[100dvh] w-full overflow-hidden">
       <Sidebar
         userEmail={session.user.email ?? undefined}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center gap-2 border-b border-border bg-background/85 backdrop-blur px-2 h-14 shrink-0 pt-[env(safe-area-inset-top)] box-content">
+      <main className="relative z-10 flex-1 flex flex-col min-w-0">
+        <header className="glass-panel flex items-center gap-1 border-b border-[var(--glass-border)] px-2 h-14 shrink-0 pt-[env(safe-area-inset-top)] box-content">
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label="Open sidebar"
-            className="rounded-xl p-2.5 active:bg-accent transition"
+            className="rounded-full p-2.5 active:bg-accent/70 transition"
           >
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="h-6 w-6 shrink-0 rounded-md bg-primary flex items-center justify-center">
-              <Sparkles className="h-3 w-3 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-sm truncate">Rave.ai</span>
+            <span className="font-semibold text-[15px] tracking-tight truncate">
+              Rave<span className="text-primary">.ai</span>
+            </span>
           </div>
           <button
             onClick={newChat}
             aria-label="New chat"
-            className="rounded-xl p-2.5 active:bg-accent transition"
+            className="rounded-full p-2.5 active:bg-accent/70 transition"
           >
             <Plus className="h-5 w-5" />
           </button>
