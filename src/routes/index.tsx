@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useSession } from "@/lib/session";
-import { toast } from "sonner";
-import { Sparkles, Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -13,7 +12,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Chat with an AI you can shape. Set its personality, generate images, save every conversation.",
+          "Chat with an AI you can shape. Set its personality, attach files and photos, generate images, save every conversation.",
       },
       { property: "og:title", content: "Rave.ai — Your AI companion with personality" },
       {
@@ -34,6 +33,7 @@ function Landing() {
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/chat" });
@@ -41,11 +41,12 @@ function Landing() {
 
   const google = async () => {
     setBusy(true);
+    setMessage(null);
     const res = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
     if (res.error) {
-      toast.error(res.error.message ?? "Google sign-in failed");
+      setMessage(res.error.message ?? "Google sign-in failed");
       setBusy(false);
     }
   };
@@ -53,6 +54,7 @@ function Landing() {
   const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    setMessage(null);
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
@@ -61,61 +63,59 @@ function Landing() {
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        toast.success("Account created. Check your email if confirmation is required.");
+        setMessage("Account created. Check your email if confirmation is required.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Auth failed");
+      setMessage(err instanceof Error ? err.message : "Auth failed");
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <main
-      className="min-h-screen w-full flex items-center justify-center px-4 py-12"
-      style={{ backgroundImage: "var(--gradient-hero)" }}
-    >
-      <div className="w-full max-w-md">
+    <main className="app-aurora relative min-h-[100dvh] w-full flex items-center justify-center px-4 py-12">
+      <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/50 backdrop-blur px-3 py-1 text-xs text-muted-foreground mb-6">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            Powered by Lovable AI
+          <div className="mx-auto h-16 w-16 rounded-3xl bg-primary/90 flex items-center justify-center text-primary-foreground text-2xl font-bold shadow-[0_0_60px_-10px_oklch(var(--accent-raw)/0.8)] mb-5">
+            R
           </div>
-          <h1 className="text-4xl font-semibold tracking-tight">Rave.ai</h1>
-          <p className="mt-3 text-muted-foreground">
-            A minimalist AI chat you can shape. Set its personality, generate images, own the vibe.
+          <h1 className="text-4xl font-semibold tracking-tight">
+            Rave<span className="text-primary">.ai</span>
+          </h1>
+          <p className="mt-3 text-muted-foreground text-sm px-4">
+            A minimalist AI chat you can shape. Set its personality, attach anything, own the vibe.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card/80 backdrop-blur p-6 shadow-2xl">
+        <div className="glass-strong rounded-3xl p-6 shadow-2xl">
           <button
             onClick={google}
             disabled={busy}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-foreground text-background px-4 py-2.5 text-sm font-medium hover:opacity-90 transition disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-foreground text-background px-4 py-3 text-sm font-medium hover:opacity-90 transition disabled:opacity-60"
           >
             <GoogleIcon />
             Continue with Google
           </button>
 
           <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-[var(--glass-border)]" />
             or with email
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-[var(--glass-border)]" />
           </div>
 
           <form onSubmit={submitEmail} className="space-y-3">
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="email"
                 required
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg bg-input/60 border border-border pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                className="glass w-full rounded-2xl pl-10 pr-3 py-3 text-sm outline-none focus:ring-2 focus:ring-ring/40"
               />
             </div>
             <input
@@ -125,17 +125,21 @@ function Landing() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg bg-input/60 border border-border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+              className="glass w-full rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring/40"
             />
             <button
               type="submit"
               disabled={busy}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium hover:opacity-90 transition disabled:opacity-60"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground px-4 py-3 text-sm font-medium hover:opacity-90 transition disabled:opacity-60"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               {mode === "signin" ? "Sign in" : "Create account"}
             </button>
           </form>
+
+          {message && (
+            <p className="mt-3 text-center text-xs text-muted-foreground">{message}</p>
+          )}
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
             {mode === "signin" ? "New here?" : "Have an account?"}{" "}
