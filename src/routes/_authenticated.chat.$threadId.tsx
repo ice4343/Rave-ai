@@ -223,34 +223,17 @@ function ChatPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scroll overscroll-contain">
-        <div className="max-w-2xl mx-auto px-3 py-4">
+        <div className={`max-w-2xl mx-auto px-3 ${empty ? "min-h-full flex" : "py-4"}`}>
           {isLoading ? (
-            <div className="flex justify-center py-12">
+            <div className="flex justify-center py-12 w-full">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : empty ? (
-            <div className="flex flex-col items-center text-center pt-24 animate-rise">
-              <div className="h-14 w-14 rounded-3xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-5 shadow-[0_0_50px_-10px_oklch(var(--accent-raw)/0.6)]">
-                <span className="text-2xl font-bold text-primary">R</span>
-              </div>
-              <h2 className="text-2xl font-semibold tracking-tight">What's on your mind?</h2>
-              <p className="text-sm text-muted-foreground mt-2 px-6">
-                Ask anything, attach a file or photo, or say “generate an image of…”.
-              </p>
-              <div className="mt-7 grid gap-2 w-full">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => {
-                      setInput(s);
-                      inputRef.current?.focus();
-                    }}
-                    className="glass rounded-2xl px-4 py-3 text-left text-sm active:scale-[0.99] transition"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+            <div className="flex-1 flex flex-col items-center justify-center text-center animate-rise pb-16">
+              <StarMark className="h-12 w-12 mb-5 drop-shadow-[0_0_24px_rgba(120,140,255,0.35)]" />
+              <h2 className="text-[2rem] leading-tight font-normal tracking-tight text-foreground/90">
+                {greeting}
+              </h2>
             </div>
           ) : (
             <div className="space-y-5">
