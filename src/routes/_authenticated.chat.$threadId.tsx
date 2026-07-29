@@ -28,12 +28,24 @@ function toImagePrompt(text: string) {
 type Msg = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
 type FileAttachment = { name: string; text: string };
 
-const SUGGESTIONS = [
-  "Explain a tricky topic simply",
-  "Draft a short email for me",
-  "Generate an image of a neon city",
-  "Summarise this file I attach",
-];
+function StarMark({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
+      <defs>
+        <linearGradient id="rave-star" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f25b4c" />
+          <stop offset="35%" stopColor="#f5c33b" />
+          <stop offset="65%" stopColor="#3d7bf5" />
+          <stop offset="100%" stopColor="#2fae62" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M50 2c3 26 20 43 46 48-26 5-43 22-46 48-3-26-20-43-46-48C30 45 47 28 50 2z"
+        fill="url(#rave-star)"
+      />
+    </svg>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   head: () => ({
@@ -76,6 +88,23 @@ function ChatPage() {
       return (data ?? []) as Msg[];
     },
   });
+
+  const { data: displayName } = useQuery({
+    queryKey: ["display-name"],
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<string | null> => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+      return data?.display_name ?? null;
+    },
+  });
+
+  const greeting = displayName ? `Let's jump in, ${displayName}` : "Let's jump in";
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -211,34 +240,17 @@ function ChatPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scroll overscroll-contain">
-        <div className="max-w-2xl mx-auto px-3 py-4">
+        <div className={`max-w-2xl mx-auto px-3 ${empty ? "min-h-full flex" : "py-4"}`}>
           {isLoading ? (
-            <div className="flex justify-center py-12">
+            <div className="flex justify-center py-12 w-full">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : empty ? (
-            <div className="flex flex-col items-center text-center pt-24 animate-rise">
-              <div className="h-14 w-14 rounded-3xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-5 shadow-[0_0_50px_-10px_oklch(var(--accent-raw)/0.6)]">
-                <span className="text-2xl font-bold text-primary">R</span>
-              </div>
-              <h2 className="text-2xl font-semibold tracking-tight">What's on your mind?</h2>
-              <p className="text-sm text-muted-foreground mt-2 px-6">
-                Ask anything, attach a file or photo, or say “generate an image of…”.
-              </p>
-              <div className="mt-7 grid gap-2 w-full">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => {
-                      setInput(s);
-                      inputRef.current?.focus();
-                    }}
-                    className="glass rounded-2xl px-4 py-3 text-left text-sm active:scale-[0.99] transition"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+            <div className="flex-1 flex flex-col items-center justify-center text-center animate-rise pb-16">
+              <StarMark className="h-12 w-12 mb-5 drop-shadow-[0_0_24px_rgba(120,140,255,0.35)]" />
+              <h2 className="text-[2rem] leading-tight font-normal tracking-tight text-foreground/90">
+                {greeting}
+              </h2>
             </div>
           ) : (
             <div className="space-y-5">
@@ -259,8 +271,9 @@ function ChatPage() {
         </div>
       </div>
 
-      <div className="glass-panel border-t border-[var(--glass-border)] pb-[env(safe-area-inset-bottom)]">
-        <div className="max-w-2xl mx-auto px-3 py-2.5">
+      <div className="pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-2xl mx-auto px-3 pb-3 pt-1">
+
           {error && (
             <div className="mb-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {error}
@@ -301,7 +314,7 @@ function ChatPage() {
             </div>
           )}
 
-          <div className="glass flex items-end gap-1 rounded-[26px] px-1.5 py-1.5 focus-within:ring-2 focus-within:ring-ring/40 transition">
+          <div className="glass flex items-end gap-1.5 rounded-[32px] px-2 py-2 shadow-lg shadow-black/20 focus-within:ring-2 focus-within:ring-ring/40 transition">
             <input
               ref={imageRef}
               type="file"
@@ -370,18 +383,19 @@ function ChatPage() {
                 autosize();
               }}
               onKeyDown={onKeyDown}
-              placeholder="Message Rave.ai…"
+              placeholder="Ask Rave.ai"
               rows={1}
-              className="flex-1 resize-none bg-transparent py-2.5 px-1 text-base outline-none min-h-[40px] max-h-40 leading-snug"
+              className="flex-1 resize-none bg-transparent py-2.5 px-1 text-base outline-none min-h-[40px] max-h-40 leading-snug placeholder:text-muted-foreground/70"
             />
             <button
               onClick={send}
               disabled={busy || (!input.trim() && !attachment && !fileAttachment)}
-              className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition disabled:opacity-40"
+              className="shrink-0 inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition disabled:opacity-40"
               aria-label="Send"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
             </button>
+
           </div>
         </div>
       </div>
