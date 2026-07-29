@@ -27,7 +27,32 @@ function toImagePrompt(text: string) {
 }
 
 type Msg = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
-type FileAttachment = { name: string; text: string };
+type FileAttachment = { name: string; mime: string; text?: string; dataUrl?: string };
+
+// Only these are safe to inline as plain text; anything else (PDF, docx…) is
+// binary and must be sent as base64 so it doesn't corrupt the message content.
+const TEXT_EXT = /\.(txt|md|markdown|csv|tsv|json|ya?ml|xml|html?|css|jsx?|tsx?|py|rb|go|rs|java|c|h|cpp|sh|sql|ini|toml|log)$/i;
+
+function isTextFile(file: File) {
+  return file.type.startsWith("text/") || TEXT_EXT.test(file.name);
+}
+
+// Strip NUL + lone surrogates — Postgres rejects them ("unsupported Unicode escape sequence").
+function sanitizeText(s: string) {
+  return s
+    .replace(/\u0000/g, "")
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("read failed"));
+    reader.readAsDataURL(file);
+  });
+}
 
 function StarMark({ className = "" }: { className?: string }) {
   return <RaveMark className={className} />;
