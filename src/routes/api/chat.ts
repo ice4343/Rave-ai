@@ -212,7 +212,5 @@ async function handleChat(request: Request) {
             "X-Accel-Buffering": "no",
           },
         });
-      },
-    },
-  },
-});
+}
+
