@@ -59,9 +59,10 @@ async function handleChat(request: Request) {
         const token = authHeader.slice(7);
 
         const body = (await request.json()) as ChatBody;
-        if (!body?.threadId || (!body?.message && !body?.image)) {
+        if (!body?.threadId || (!body?.message && !body?.image && !body?.file)) {
           return new Response("Bad request", { status: 400 });
         }
+        body.message = sanitize(body.message ?? "");
 
         const lovableKey = process.env.LOVABLE_API_KEY;
         if (!lovableKey) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
