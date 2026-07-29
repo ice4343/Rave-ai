@@ -314,7 +314,7 @@ function ChatPage() {
             </div>
           )}
 
-          <div className="glass flex items-end gap-1 rounded-[26px] px-1.5 py-1.5 focus-within:ring-2 focus-within:ring-ring/40 transition">
+          <div className="glass flex items-end gap-1.5 rounded-[32px] px-2 py-2 shadow-lg shadow-black/20 focus-within:ring-2 focus-within:ring-ring/40 transition">
             <input
               ref={imageRef}
               type="file"
