@@ -271,8 +271,9 @@ function ChatPage() {
         </div>
       </div>
 
-      <div className="glass-panel border-t border-[var(--glass-border)] pb-[env(safe-area-inset-bottom)]">
-        <div className="max-w-2xl mx-auto px-3 py-2.5">
+      <div className="pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-2xl mx-auto px-3 pb-3 pt-1">
+
           {error && (
             <div className="mb-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {error}
