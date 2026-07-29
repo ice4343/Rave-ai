@@ -112,7 +112,7 @@ function Layout() {
         onClose={() => setSidebarOpen(false)}
       />
       <main className="relative z-10 flex-1 flex flex-col min-w-0">
-        <header className="glass-panel flex items-center gap-1 border-b border-[var(--glass-border)] px-2 h-14 shrink-0 pt-[env(safe-area-inset-top)] box-content">
+        <header className="flex items-center gap-1 bg-transparent px-2 h-14 shrink-0 pt-[env(safe-area-inset-top)] box-content">
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label="Open sidebar"
@@ -121,7 +121,9 @@ function Layout() {
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2 min-w-0 flex-1">
+            <RaveMark className="h-5 w-5 shrink-0" />
             <span className="font-semibold text-[15px] tracking-tight truncate">
+
               Rave<span className="text-primary">.ai</span>
             </span>
           </div>
