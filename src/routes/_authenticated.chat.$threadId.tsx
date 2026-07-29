@@ -28,12 +28,24 @@ function toImagePrompt(text: string) {
 type Msg = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
 type FileAttachment = { name: string; text: string };
 
-const SUGGESTIONS = [
-  "Explain a tricky topic simply",
-  "Draft a short email for me",
-  "Generate an image of a neon city",
-  "Summarise this file I attach",
-];
+function StarMark({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
+      <defs>
+        <linearGradient id="rave-star" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f25b4c" />
+          <stop offset="35%" stopColor="#f5c33b" />
+          <stop offset="65%" stopColor="#3d7bf5" />
+          <stop offset="100%" stopColor="#2fae62" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M50 2c3 26 20 43 46 48-26 5-43 22-46 48-3-26-20-43-46-48C30 45 47 28 50 2z"
+        fill="url(#rave-star)"
+      />
+    </svg>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   head: () => ({
