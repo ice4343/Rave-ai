@@ -138,7 +138,10 @@ async function handleChat(request: Request) {
             return new Response("Rate limit reached. Please try again in a moment.", { status: 429 });
           if (upstream.status === 402)
             return new Response("AI credits exhausted. Please add credits in your workspace.", { status: 402 });
-          return new Response("AI service error", { status: 500 });
+          return new Response(`AI service error (${upstream.status}): ${errText.slice(0, 300)}`, {
+            status: 500,
+          });
+
         }
 
         // If this is the first user message in the thread, generate a short title async.
