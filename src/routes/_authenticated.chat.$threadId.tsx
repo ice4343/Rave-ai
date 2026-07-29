@@ -27,7 +27,32 @@ function toImagePrompt(text: string) {
 }
 
 type Msg = { id: string; role: "user" | "assistant" | "system"; content: string; created_at: string };
-type FileAttachment = { name: string; text: string };
+type FileAttachment = { name: string; mime: string; text?: string; dataUrl?: string };
+
+// Only these are safe to inline as plain text; anything else (PDF, docx…) is
+// binary and must be sent as base64 so it doesn't corrupt the message content.
+const TEXT_EXT = /\.(txt|md|markdown|csv|tsv|json|ya?ml|xml|html?|css|jsx?|tsx?|py|rb|go|rs|java|c|h|cpp|sh|sql|ini|toml|log)$/i;
+
+function isTextFile(file: File) {
+  return file.type.startsWith("text/") || TEXT_EXT.test(file.name);
+}
+
+// Strip NUL + lone surrogates — Postgres rejects them ("unsupported Unicode escape sequence").
+function sanitizeText(s: string) {
+  return s
+    .replace(/\u0000/g, "")
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("read failed"));
+    reader.readAsDataURL(file);
+  });
+}
 
 function StarMark({ className = "" }: { className?: string }) {
   return <RaveMark className={className} />;
@@ -125,13 +150,27 @@ function ChatPage() {
   const pickFile = async (file?: File | null) => {
     if (!file) return;
     if (file.type.startsWith("image/")) return pickImage(file);
-    if (file.size > 400_000) {
-      setError("File is too large — keep it under 400 KB.");
+    const textual = isTextFile(file);
+    const limit = textual ? 400_000 : 8_000_000;
+    if (file.size > limit) {
+      setError(textual ? "File is too large — keep it under 400 KB." : "File is too large — keep it under 8 MB.");
       return;
     }
     try {
-      const text = await file.text();
-      setFileAttachment({ name: file.name, text: text.slice(0, 60_000) });
+      if (textual) {
+        const text = await file.text();
+        setFileAttachment({
+          name: file.name,
+          mime: file.type || "text/plain",
+          text: sanitizeText(text).slice(0, 60_000),
+        });
+      } else {
+        setFileAttachment({
+          name: file.name,
+          mime: file.type || "application/octet-stream",
+          dataUrl: await fileToDataUrl(file),
+        });
+      }
       setError(null);
     } catch {
       setError("Couldn't read that file.");
@@ -153,7 +192,7 @@ function ChatPage() {
     setStreaming("");
     requestAnimationFrame(autosize);
 
-    const outgoing = file
+    const outgoing = file?.text
       ? `${text}\n\n--- Attached file: ${file.name} ---\n${file.text}`
       : text;
 
@@ -184,7 +223,14 @@ function ChatPage() {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ threadId, message: outgoing, image }),
+          body: JSON.stringify({
+            threadId,
+            message: outgoing,
+            image,
+            file: file?.dataUrl
+              ? { name: file.name, mime: file.mime, dataUrl: file.dataUrl }
+              : null,
+          }),
         });
         if (!res.ok || !res.body) throw new Error((await res.text()) || "Request failed");
         const reader = res.body.getReader();

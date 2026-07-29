@@ -5,7 +5,15 @@ type ChatBody = {
   threadId: string;
   message: string;
   image?: string | null;
+  file?: { name: string; mime: string; dataUrl: string } | null;
 };
+
+// Postgres text can't store NUL or lone surrogates.
+function sanitize(s: string) {
+  return (s ?? "")
+    .replace(/\u0000/g, "")
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3.6-flash";
@@ -51,9 +59,10 @@ async function handleChat(request: Request) {
         const token = authHeader.slice(7);
 
         const body = (await request.json()) as ChatBody;
-        if (!body?.threadId || (!body?.message && !body?.image)) {
+        if (!body?.threadId || (!body?.message && !body?.image && !body?.file)) {
           return new Response("Bad request", { status: 400 });
         }
+        body.message = sanitize(body.message ?? "");
 
         const lovableKey = process.env.LOVABLE_API_KEY;
         if (!lovableKey) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
@@ -94,9 +103,17 @@ async function handleChat(request: Request) {
           .order("created_at", { ascending: true });
 
         // Save user message (attachment stored inline as markdown so it renders)
-        const storedUserContent = body.image
-          ? `${body.message}\n\n![attachment](${body.image})`.trim()
-          : body.message;
+        // Save user message. Binary attachments are stored as a filename chip only —
+        // never their raw bytes (Postgres rejects NUL / invalid unicode).
+        const storedUserContent = sanitize(
+          [
+            body.message,
+            body.file ? `\n\n📎 ${body.file.name}` : "",
+            body.image ? `\n\n![attachment](${body.image})` : "",
+          ]
+            .join("")
+            .trim(),
+        );
         const { error: insertErr } = await supabase.from("messages").insert({
           thread_id: body.threadId,
           user_id: userId,
@@ -109,12 +126,25 @@ async function handleChat(request: Request) {
         const stripImages = (t: string) =>
           t.replace(/!\[[^\]]*\]\(data:image\/[^)]+\)/g, "[image]");
 
-        const currentContent = body.image
-          ? [
-              { type: "text", text: body.message || "What is in this image?" },
-              { type: "image_url", image_url: { url: body.image } },
-            ]
-          : body.message;
+        const parts: Array<Record<string, unknown>> = [];
+        if (body.image || body.file) {
+          parts.push({
+            type: "text",
+            text:
+              body.message ||
+              (body.file ? `Please review the attached file: ${body.file.name}` : "What is in this image?"),
+          });
+        }
+        if (body.image) parts.push({ type: "image_url", image_url: { url: body.image } });
+        if (body.file) {
+          parts.push({
+            type: "file",
+            file: { filename: body.file.name, file_data: body.file.dataUrl },
+          });
+        }
+
+        const currentContent = parts.length > 0 ? parts : body.message;
+
 
         const messages = [
           { role: "system", content: systemPrompt },
