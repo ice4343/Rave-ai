@@ -89,6 +89,23 @@ function ChatPage() {
     },
   });
 
+  const { data: displayName } = useQuery({
+    queryKey: ["display-name"],
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<string | null> => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+      return data?.display_name ?? null;
+    },
+  });
+
+  const greeting = displayName ? `Let's jump in, ${displayName}` : "Let's jump in";
+
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
