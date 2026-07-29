@@ -383,18 +383,19 @@ function ChatPage() {
                 autosize();
               }}
               onKeyDown={onKeyDown}
-              placeholder="Message Rave.ai…"
+              placeholder="Ask Rave.ai"
               rows={1}
-              className="flex-1 resize-none bg-transparent py-2.5 px-1 text-base outline-none min-h-[40px] max-h-40 leading-snug"
+              className="flex-1 resize-none bg-transparent py-2.5 px-1 text-base outline-none min-h-[40px] max-h-40 leading-snug placeholder:text-muted-foreground/70"
             />
             <button
               onClick={send}
               disabled={busy || (!input.trim() && !attachment && !fileAttachment)}
-              className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition disabled:opacity-40"
+              className="shrink-0 inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition disabled:opacity-40"
               aria-label="Send"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
             </button>
+
           </div>
         </div>
       </div>
