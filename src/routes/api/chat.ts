@@ -30,7 +30,21 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        try {
+          return await handleChat(request);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error("chat handler error:", msg, e);
+          return new Response(`Chat failed: ${msg}`, { status: 500 });
+        }
+      },
+    },
+  },
+});
+
+async function handleChat(request: Request) {
         const authHeader = request.headers.get("authorization");
+
         if (!authHeader?.startsWith("Bearer ")) {
           return new Response("Unauthorized", { status: 401 });
         }
