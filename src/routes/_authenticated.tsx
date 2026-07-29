@@ -2,6 +2,8 @@ import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/session";
 import { Sidebar } from "@/components/Sidebar";
+import { RaveMark } from "@/components/RaveMark";
+
 import { Loader2, Menu, Plus } from "lucide-react";
 import { applySettings, loadSettings } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
