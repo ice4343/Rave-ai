@@ -223,7 +223,14 @@ function ChatPage() {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ threadId, message: outgoing, image }),
+          body: JSON.stringify({
+            threadId,
+            message: outgoing,
+            image,
+            file: file?.dataUrl
+              ? { name: file.name, mime: file.mime, dataUrl: file.dataUrl }
+              : null,
+          }),
         });
         if (!res.ok || !res.body) throw new Error((await res.text()) || "Request failed");
         const reader = res.body.getReader();
