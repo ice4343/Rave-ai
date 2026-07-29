@@ -5,7 +5,15 @@ type ChatBody = {
   threadId: string;
   message: string;
   image?: string | null;
+  file?: { name: string; mime: string; dataUrl: string } | null;
 };
+
+// Postgres text can't store NUL or lone surrogates.
+function sanitize(s: string) {
+  return (s ?? "")
+    .replace(/\u0000/g, "")
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3.6-flash";
