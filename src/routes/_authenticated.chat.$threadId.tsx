@@ -150,13 +150,27 @@ function ChatPage() {
   const pickFile = async (file?: File | null) => {
     if (!file) return;
     if (file.type.startsWith("image/")) return pickImage(file);
-    if (file.size > 400_000) {
-      setError("File is too large — keep it under 400 KB.");
+    const textual = isTextFile(file);
+    const limit = textual ? 400_000 : 8_000_000;
+    if (file.size > limit) {
+      setError(textual ? "File is too large — keep it under 400 KB." : "File is too large — keep it under 8 MB.");
       return;
     }
     try {
-      const text = await file.text();
-      setFileAttachment({ name: file.name, text: text.slice(0, 60_000) });
+      if (textual) {
+        const text = await file.text();
+        setFileAttachment({
+          name: file.name,
+          mime: file.type || "text/plain",
+          text: sanitizeText(text).slice(0, 60_000),
+        });
+      } else {
+        setFileAttachment({
+          name: file.name,
+          mime: file.type || "application/octet-stream",
+          dataUrl: await fileToDataUrl(file),
+        });
+      }
       setError(null);
     } catch {
       setError("Couldn't read that file.");
@@ -178,7 +192,7 @@ function ChatPage() {
     setStreaming("");
     requestAnimationFrame(autosize);
 
-    const outgoing = file
+    const outgoing = file?.text
       ? `${text}\n\n--- Attached file: ${file.name} ---\n${file.text}`
       : text;
 
