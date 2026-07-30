@@ -22,13 +22,148 @@ export const THEME_PRESETS: ThemePreset[] = [
   { id: "magenta", name: "Magenta", primary: "0.70 0.22 330", primaryForeground: "0.98 0.005 330" },
   { id: "teal", name: "Teal", primary: "0.74 0.12 180", primaryForeground: "0.16 0.02 180" },
   { id: "slate", name: "Slate", primary: "0.80 0.02 260", primaryForeground: "0.18 0.01 260" },
+  { id: "mono", name: "Mono", primary: "0.97 0 0", primaryForeground: "0.14 0 0" },
+  { id: "acid", name: "Acid", primary: "0.88 0.24 130", primaryForeground: "0.14 0.02 130" },
+  { id: "matrix", name: "Matrix", primary: "0.80 0.22 145", primaryForeground: "0.12 0.03 145" },
+  { id: "gold", name: "Gold", primary: "0.84 0.13 92", primaryForeground: "0.17 0.03 92" },
+  { id: "ice", name: "Ice", primary: "0.90 0.05 215", primaryForeground: "0.16 0.02 215" },
+  { id: "plum", name: "Plum", primary: "0.62 0.16 320", primaryForeground: "0.98 0.005 320" },
+  { id: "sand", name: "Sand", primary: "0.86 0.06 80", primaryForeground: "0.20 0.02 80" },
+  { id: "crimson", name: "Crimson", primary: "0.60 0.22 25", primaryForeground: "0.98 0.005 25" },
 ];
+
+/** Background / surface styles — control the canvas, cards and glass tokens. */
+export type SurfacePreset = {
+  id: string;
+  name: string;
+  hint: string;
+  swatch: string;
+  vars: Record<string, string>;
+};
+
+export const SURFACE_PRESETS: SurfacePreset[] = [
+  {
+    id: "space",
+    name: "Deep space",
+    hint: "Default cool navy canvas",
+    swatch: "oklch(0.13 0.012 265)",
+    vars: {},
+  },
+  {
+    id: "onyx",
+    name: "Onyx",
+    hint: "True black, OLED friendly",
+    swatch: "oklch(0 0 0)",
+    vars: {
+      "--background": "oklch(0 0 0)",
+      "--card": "oklch(0.13 0 0)",
+      "--popover": "oklch(0.14 0 0)",
+      "--secondary": "oklch(0.16 0 0)",
+      "--muted": "oklch(0.16 0 0)",
+      "--muted-foreground": "oklch(0.66 0 0)",
+      "--accent": "oklch(0.20 0 0)",
+      "--border": "oklch(0.22 0 0)",
+      "--input": "oklch(0.16 0 0)",
+      "--sidebar": "oklch(0.04 0 0)",
+      "--sidebar-accent": "oklch(0.16 0 0)",
+      "--sidebar-border": "oklch(0.20 0 0)",
+      "--glass-bg": "oklch(1 0 0 / 0.045)",
+      "--glass-strong": "oklch(1 0 0 / 0.08)",
+      "--glass-border": "oklch(1 0 0 / 0.10)",
+    },
+  },
+  {
+    id: "translucent",
+    name: "Translucent",
+    hint: "Heavier frosted glass",
+    swatch: "oklch(0.22 0.02 265 / 0.7)",
+    vars: {
+      "--background": "oklch(0.11 0.014 265)",
+      "--card": "oklch(0.20 0.016 265)",
+      "--glass-bg": "oklch(1 0 0 / 0.10)",
+      "--glass-strong": "oklch(1 0 0 / 0.16)",
+      "--glass-border": "oklch(1 0 0 / 0.20)",
+      "--glass-blur": "32px",
+    },
+  },
+  {
+    id: "graphite",
+    name: "Graphite",
+    hint: "Neutral grey, zero tint",
+    swatch: "oklch(0.20 0 0)",
+    vars: {
+      "--background": "oklch(0.16 0 0)",
+      "--card": "oklch(0.22 0 0)",
+      "--popover": "oklch(0.23 0 0)",
+      "--secondary": "oklch(0.25 0 0)",
+      "--muted": "oklch(0.25 0 0)",
+      "--muted-foreground": "oklch(0.70 0 0)",
+      "--accent": "oklch(0.30 0 0)",
+      "--border": "oklch(0.30 0 0)",
+      "--input": "oklch(0.25 0 0)",
+      "--sidebar": "oklch(0.18 0 0)",
+      "--sidebar-accent": "oklch(0.26 0 0)",
+      "--sidebar-border": "oklch(0.28 0 0)",
+    },
+  },
+  {
+    id: "terminal",
+    name: "Terminal",
+    hint: "Black canvas, green glow",
+    swatch: "oklch(0.30 0.14 145)",
+    vars: {
+      "--background": "oklch(0.05 0.02 150)",
+      "--foreground": "oklch(0.92 0.10 145)",
+      "--card": "oklch(0.12 0.03 150)",
+      "--popover": "oklch(0.13 0.03 150)",
+      "--secondary": "oklch(0.16 0.04 150)",
+      "--muted": "oklch(0.16 0.04 150)",
+      "--muted-foreground": "oklch(0.68 0.10 145)",
+      "--accent": "oklch(0.22 0.06 150)",
+      "--accent-foreground": "oklch(0.92 0.10 145)",
+      "--border": "oklch(0.28 0.07 150)",
+      "--input": "oklch(0.16 0.04 150)",
+      "--sidebar": "oklch(0.07 0.02 150)",
+      "--sidebar-foreground": "oklch(0.90 0.09 145)",
+      "--sidebar-accent": "oklch(0.18 0.05 150)",
+      "--sidebar-border": "oklch(0.26 0.06 150)",
+      "--glass-bg": "oklch(0.80 0.20 145 / 0.06)",
+      "--glass-strong": "oklch(0.80 0.20 145 / 0.10)",
+      "--glass-border": "oklch(0.80 0.20 145 / 0.20)",
+    },
+  },
+  {
+    id: "paper",
+    name: "Paper",
+    hint: "Warm off-white surfaces",
+    swatch: "oklch(0.95 0.012 80)",
+    vars: {
+      "--background": "oklch(0.20 0.008 80)",
+      "--card": "oklch(0.26 0.010 80)",
+      "--popover": "oklch(0.27 0.010 80)",
+      "--secondary": "oklch(0.29 0.010 80)",
+      "--muted": "oklch(0.29 0.010 80)",
+      "--muted-foreground": "oklch(0.74 0.012 80)",
+      "--accent": "oklch(0.33 0.012 80)",
+      "--border": "oklch(0.34 0.012 80)",
+      "--input": "oklch(0.29 0.010 80)",
+      "--sidebar": "oklch(0.23 0.008 80)",
+      "--sidebar-accent": "oklch(0.30 0.010 80)",
+      "--sidebar-border": "oklch(0.33 0.012 80)",
+    },
+  },
+];
+
+const SURFACE_VAR_KEYS = Array.from(
+  new Set(SURFACE_PRESETS.flatMap((s) => Object.keys(s.vars))),
+);
 
 export type Mode = "dark" | "light" | "system";
 export type Density = "cozy" | "compact";
 
 export type ThemeSettings = {
   accent: string;
+  surface: string;
   mode: Mode;
   fontScale: number; // 0.9 – 1.2
   glass: boolean;
@@ -38,6 +173,7 @@ export type ThemeSettings = {
 
 export const DEFAULT_SETTINGS: ThemeSettings = {
   accent: "amber",
+  surface: "space",
   mode: "dark",
   fontScale: 1,
   glass: true,
@@ -46,6 +182,11 @@ export const DEFAULT_SETTINGS: ThemeSettings = {
 };
 
 const KEY = "rave.settings.v2";
+
+export function getSurface(id: string): SurfacePreset {
+  return SURFACE_PRESETS.find((s) => s.id === id) ?? SURFACE_PRESETS[0];
+}
+
 
 export function getPreset(id: string): ThemePreset {
   return THEME_PRESETS.find((p) => p.id === id) ?? THEME_PRESETS[0];
