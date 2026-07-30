@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useSession } from "@/lib/session";
 import { Mail, Loader2 } from "lucide-react";
+import { RaveMark } from "@/components/RaveMark";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -79,9 +81,10 @@ function Landing() {
     <main className="app-aurora relative min-h-[100dvh] w-full flex items-center justify-center px-4 py-12">
       <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="mx-auto h-16 w-16 rounded-3xl bg-primary/90 flex items-center justify-center text-primary-foreground text-2xl font-bold shadow-[0_0_60px_-10px_oklch(var(--accent-raw)/0.8)] mb-5">
-            R
+          <div className="mx-auto h-16 w-16 rounded-3xl bg-background/60 border border-[var(--glass-border)] flex items-center justify-center shadow-[0_0_60px_-10px_oklch(var(--accent-raw)/0.8)] mb-5">
+            <RaveMark className="h-8 w-8 text-primary" />
           </div>
+
           <h1 className="text-4xl font-semibold tracking-tight">
             Rave<span className="text-primary">.ai</span>
           </h1>

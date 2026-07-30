@@ -280,7 +280,7 @@ function ChatPage() {
             </div>
           ) : empty ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center animate-rise pb-16">
-              <StarMark className="h-12 w-12 mb-5 drop-shadow-[0_0_24px_rgba(120,140,255,0.35)]" />
+              <StarMark className="h-12 w-12 mb-5 text-primary drop-shadow-[0_0_24px_oklch(var(--accent-raw)/0.45)]" />
               <h2 className="text-[2rem] leading-tight font-normal tracking-tight text-foreground/90">
                 {greeting}
               </h2>
@@ -477,7 +477,7 @@ const Bubble = memo(function Bubble({
   return (
     <div className="flex gap-2.5 animate-rise">
       <div className="h-7 w-7 shrink-0 flex items-center justify-center mt-0.5">
-        <RaveMark className="h-6 w-6" />
+        <RaveMark className="h-5 w-5 text-primary" />
       </div>
 
       <div className={`msg-prose text-[0.95rem] flex-1 min-w-0 ${streaming ? "streaming-cursor" : ""}`}>

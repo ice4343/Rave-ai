@@ -123,7 +123,7 @@ function Layout() {
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <RaveMark className="h-5 w-5 shrink-0" />
+            <RaveMark className="h-5 w-5 shrink-0 text-primary" />
             <span className="font-semibold text-[15px] tracking-tight truncate">
 
               Rave<span className="text-primary">.ai</span>
