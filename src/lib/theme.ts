@@ -208,9 +208,20 @@ export function applySettings(s: ThemeSettings) {
 
   const light = s.mode === "light" || (s.mode === "system" && prefersLight());
   root.classList.toggle("light", light);
+
+  // Surface style (dark canvases only — light mode keeps its own palette)
+  for (const key of SURFACE_VAR_KEYS) root.style.removeProperty(key);
+  if (!light) {
+    const surface = getSurface(s.surface);
+    for (const [key, value] of Object.entries(surface.vars)) {
+      root.style.setProperty(key, value);
+    }
+  }
+
   root.style.fontSize = `${Math.round(16 * s.fontScale)}px`;
   root.classList.toggle("no-glass", !s.glass);
   root.dataset.density = s.density;
+
 }
 
 export function loadSettings(): ThemeSettings {
