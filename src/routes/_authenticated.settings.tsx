@@ -245,6 +245,40 @@ function Settings() {
               </div>
             </Card>
 
+            {/* Surface / background style */}
+            <Card>
+              <SectionTitle icon={<Droplet className="h-4 w-4 text-primary" />} label="Background style" />
+              <div className="grid grid-cols-2 gap-2.5">
+                {SURFACE_PRESETS.map((s) => {
+                  const active = settings.surface === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => update({ surface: s.id })}
+                      className={`relative rounded-2xl border p-3 flex items-center gap-3 text-left transition ${
+                        active ? "border-primary bg-primary/10" : "border-[var(--glass-border)]"
+                      }`}
+                      aria-label={`Use ${s.name} background`}
+                    >
+                      <span
+                        className="h-8 w-8 shrink-0 rounded-xl border border-[var(--glass-border)]"
+                        style={{ background: s.swatch }}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-xs font-medium truncate">{s.name}</span>
+                        <span className="block text-[10px] text-muted-foreground truncate">{s.hint}</span>
+                      </span>
+                      {active && <Check className="absolute top-1.5 right-1.5 h-3 w-3 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2.5 text-[10px] text-muted-foreground">
+                Background styles apply to dark mode.
+              </p>
+            </Card>
+
+
             {/* Appearance */}
             <Card>
               <SectionTitle icon={<Sun className="h-4 w-4 text-primary" />} label="Appearance" />
