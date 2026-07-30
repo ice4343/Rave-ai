@@ -477,7 +477,7 @@ const Bubble = memo(function Bubble({
   return (
     <div className="flex gap-2.5 animate-rise">
       <div className="h-7 w-7 shrink-0 flex items-center justify-center mt-0.5">
-        <RaveMark className="h-6 w-6" />
+        <RaveMark className="h-5 w-5 text-primary" />
       </div>
 
       <div className={`msg-prose text-[0.95rem] flex-1 min-w-0 ${streaming ? "streaming-cursor" : ""}`}>
