@@ -20,8 +20,12 @@ function Layout() {
   const qc = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isSettings = pathname.startsWith("/settings");
   const openRef = useRef(sidebarOpen);
   openRef.current = sidebarOpen;
+  const gesturesOffRef = useRef(isSettings);
+  gesturesOffRef.current = isSettings;
+
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/" });
@@ -55,6 +59,10 @@ function Layout() {
     };
 
     const onStart = (e: TouchEvent) => {
+      if (gesturesOffRef.current) {
+        tracking = false;
+        return;
+      }
       const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
@@ -62,7 +70,8 @@ function Layout() {
       tracking = !isScrollableX(e.target);
     };
     const onMove = (e: TouchEvent) => {
-      if (!tracking || decided) return;
+      if (!tracking || decided || gesturesOffRef.current) return;
+
       const t = e.touches[0];
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
@@ -108,35 +117,42 @@ function Layout() {
 
   return (
     <div className="app-aurora relative flex h-[100dvh] w-full overflow-hidden">
-      <Sidebar
-        userEmail={session.user.email ?? undefined}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      {!isSettings && (
+        <Sidebar
+          userEmail={session.user.email ?? undefined}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+      )}
       <main className="relative z-10 flex-1 flex flex-col min-w-0">
         <header className="flex items-center gap-1 bg-transparent px-2 h-14 shrink-0 pt-[env(safe-area-inset-top)] box-content">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open sidebar"
-            className="rounded-full p-2.5 active:bg-accent/70 transition"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          {!isSettings && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+              className="rounded-full p-2.5 active:bg-accent/70 transition"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          )}
+          <div className={`flex items-center gap-2 min-w-0 flex-1 ${isSettings ? "pl-2.5" : ""}`}>
             <RaveMark className="h-5 w-5 shrink-0 text-primary" />
             <span className="font-semibold text-[15px] tracking-tight truncate">
 
               Rave<span className="text-primary">.ai</span>
             </span>
           </div>
-          <button
-            onClick={newChat}
-            aria-label="New chat"
-            className="rounded-full p-2.5 active:bg-accent/70 transition"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
+          {!isSettings && (
+            <button
+              onClick={newChat}
+              aria-label="New chat"
+              className="rounded-full p-2.5 active:bg-accent/70 transition"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          )}
         </header>
+
         <Outlet />
       </main>
     </div>
