@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useSession } from "@/lib/session";
 import { Mail, Loader2 } from "lucide-react";
+import { RaveMark } from "@/components/RaveMark";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
