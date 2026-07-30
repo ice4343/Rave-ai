@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Check,
   Download,
+  Droplet,
   Info,
   Keyboard,
   LayoutGrid,
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 import {
   DEFAULT_SETTINGS,
+  SURFACE_PRESETS,
   THEME_PRESETS,
   applySettings,
   loadSettings,
@@ -32,6 +34,7 @@ import {
   type Mode,
   type ThemeSettings,
 } from "@/lib/theme";
+
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
