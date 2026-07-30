@@ -59,6 +59,10 @@ function Layout() {
     };
 
     const onStart = (e: TouchEvent) => {
+      if (gesturesOffRef.current) {
+        tracking = false;
+        return;
+      }
       const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
@@ -66,7 +70,8 @@ function Layout() {
       tracking = !isScrollableX(e.target);
     };
     const onMove = (e: TouchEvent) => {
-      if (!tracking || decided) return;
+      if (!tracking || decided || gesturesOffRef.current) return;
+
       const t = e.touches[0];
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
