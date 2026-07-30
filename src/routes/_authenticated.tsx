@@ -20,8 +20,12 @@ function Layout() {
   const qc = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isSettings = pathname.startsWith("/settings");
   const openRef = useRef(sidebarOpen);
   openRef.current = sidebarOpen;
+  const gesturesOffRef = useRef(isSettings);
+  gesturesOffRef.current = isSettings;
+
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/" });
