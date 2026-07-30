@@ -280,7 +280,7 @@ function ChatPage() {
             </div>
           ) : empty ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center animate-rise pb-16">
-              <StarMark className="h-12 w-12 mb-5 drop-shadow-[0_0_24px_rgba(120,140,255,0.35)]" />
+              <StarMark className="h-12 w-12 mb-5 text-primary drop-shadow-[0_0_24px_oklch(var(--accent-raw)/0.45)]" />
               <h2 className="text-[2rem] leading-tight font-normal tracking-tight text-foreground/90">
                 {greeting}
               </h2>
