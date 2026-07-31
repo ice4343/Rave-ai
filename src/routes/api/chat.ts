@@ -244,7 +244,12 @@ async function handleChat(request: Request) {
                   if (payload === "[DONE]") continue;
                   try {
                     const json = JSON.parse(payload);
-                    const delta = json.choices?.[0]?.delta?.content;
+                    const delta =
+                      model.api === "responses"
+                        ? json.type === "response.output_text.delta"
+                          ? json.delta
+                          : undefined
+                        : json.choices?.[0]?.delta?.content;
                     if (typeof delta === "string" && delta.length > 0) {
                       fullText += delta;
                       controller.enqueue(encoder.encode(delta));
