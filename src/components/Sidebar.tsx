@@ -1,8 +1,9 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Settings, MessageSquare, Search, X } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { Plus, Trash2, Settings, MessageSquare, Search, X, MoreVertical, Pencil } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { RaveMark } from "@/components/RaveMark";
 
 type Thread = { id: string; title: string; updated_at: string };
 
