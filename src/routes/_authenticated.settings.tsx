@@ -105,10 +105,15 @@ function Settings() {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
+      const nextName = name.trim() || null;
       await supabase
         .from("profiles")
-        .update({ personality: text, display_name: name.trim() || null })
+        .update({ personality: text, display_name: nextName })
         .eq("id", user.user.id);
+      // Push the new name straight into the chat page's cache so the greeting
+      // updates instantly, then refetch in the background.
+      qc.setQueryData(["display-name"], nextName);
+      qc.invalidateQueries({ queryKey: ["display-name"] });
       await qc.invalidateQueries({ queryKey: ["profile"] });
       setSaved(true);
       setTimeout(() => setSaved(false), 1400);
