@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { getModel } from "@/lib/models";
 
 type ChatBody = {
   threadId: string;
   message: string;
+  model?: string | null;
   image?: string | null;
   file?: { name: string; mime: string; dataUrl: string } | null;
 };
@@ -16,7 +18,7 @@ function sanitize(s: string) {
 }
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-3.6-flash";
+const RESPONSES = "https://ai.gateway.lovable.dev/v1/responses";
 
 function makeUserClient(token: string) {
   const url = process.env.SUPABASE_URL!;
