@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { getModel } from "@/lib/models";
 
 type ChatBody = {
   threadId: string;
   message: string;
+  model?: string | null;
   image?: string | null;
   file?: { name: string; mime: string; dataUrl: string } | null;
 };
@@ -16,7 +18,7 @@ function sanitize(s: string) {
 }
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-3.6-flash";
+const RESPONSES = "https://ai.gateway.lovable.dev/v1/responses";
 
 function makeUserClient(token: string) {
   const url = process.env.SUPABASE_URL!;
@@ -146,19 +148,61 @@ async function handleChat(request: Request) {
         const currentContent = parts.length > 0 ? parts : body.message;
 
 
+        const model = getModel(body.model);
+
         const messages = [
           { role: "system", content: systemPrompt },
           ...(history ?? []).map((m) => ({ role: m.role, content: stripImages(m.content) })),
           { role: "user", content: currentContent },
         ];
 
-        const upstream = await fetch(GATEWAY, {
+        // OpenAI models are served by the gateway Responses API, which uses a
+        // different request body and SSE event shape.
+        const responsesInput = [
+          ...(history ?? []).map((m) => ({
+            role: m.role === "assistant" ? "assistant" : "user",
+            content: [
+              {
+                type: m.role === "assistant" ? "output_text" : "input_text",
+                text: stripImages(m.content),
+              },
+            ],
+          })),
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: body.message || "Please review the attachment." },
+              ...(body.image ? [{ type: "input_image", image_url: body.image }] : []),
+              ...(body.file
+                ? [
+                    {
+                      type: "input_file",
+                      filename: body.file.name,
+                      file_data: body.file.dataUrl,
+                    },
+                  ]
+                : []),
+            ],
+          },
+        ];
+
+        const upstream = await fetch(model.api === "responses" ? RESPONSES : GATEWAY, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${lovableKey}`,
           },
-          body: JSON.stringify({ model: MODEL, messages, stream: true }),
+          body: JSON.stringify(
+            model.api === "responses"
+              ? {
+                  model: model.id,
+                  instructions: systemPrompt,
+                  input: responsesInput,
+                  stream: true,
+                  store: false,
+                }
+              : { model: model.id, messages, stream: true },
+          ),
         });
 
         if (!upstream.ok || !upstream.body) {
@@ -200,7 +244,12 @@ async function handleChat(request: Request) {
                   if (payload === "[DONE]") continue;
                   try {
                     const json = JSON.parse(payload);
-                    const delta = json.choices?.[0]?.delta?.content;
+                    const delta =
+                      model.api === "responses"
+                        ? json.type === "response.output_text.delta"
+                          ? json.delta
+                          : undefined
+                        : json.choices?.[0]?.delta?.content;
                     if (typeof delta === "string" && delta.length > 0) {
                       fullText += delta;
                       controller.enqueue(encoder.encode(delta));

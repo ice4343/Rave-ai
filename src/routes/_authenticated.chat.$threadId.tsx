@@ -3,10 +3,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { memo, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowUp, Loader2, Plus, ImageIcon, Paperclip, X, FileText } from "lucide-react";
+import { ArrowUp, Loader2, Plus, ImageIcon, Paperclip, X, FileText, Check, ChevronDown } from "lucide-react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import { loadSettings } from "@/lib/theme";
+import { CHAT_MODELS, getModel, loadModel, saveModel } from "@/lib/models";
 
 // Auto-detect image requests so the user never has to flip a mode switch.
 const IMAGE_INTENT =
@@ -78,6 +79,8 @@ function ChatPage() {
   const [attachment, setAttachment] = useState<string | null>(null);
   const [fileAttachment, setFileAttachment] = useState<FileAttachment | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [modelId, setModelId] = useState<string>(CHAT_MODELS[0].id);
+  const [modelMenu, setModelMenu] = useState(false);
   const [painting, setPainting] = useState(false);
   const [streaming, setStreaming] = useState("");
   const [busy, setBusy] = useState(false);
@@ -86,6 +89,10 @@ function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setModelId(loadModel());
+  }, []);
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["messages", threadId],
@@ -124,11 +131,14 @@ function ChatPage() {
   }, [messages, streaming]);
 
   useEffect(() => {
-    if (!menuOpen) return;
-    const close = () => setMenuOpen(false);
+    if (!menuOpen && !modelMenu) return;
+    const close = () => {
+      setMenuOpen(false);
+      setModelMenu(false);
+    };
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
-  }, [menuOpen]);
+  }, [menuOpen, modelMenu]);
 
   const autosize = () => {
     const el = inputRef.current;
@@ -225,6 +235,7 @@ function ChatPage() {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             threadId,
+            model: modelId,
             message: outgoing,
             image,
             file: file?.dataUrl
@@ -346,6 +357,45 @@ function ChatPage() {
               )}
             </div>
           )}
+
+          <div className="relative mb-2 flex justify-center">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setModelMenu((o) => !o);
+              }}
+              aria-expanded={modelMenu}
+              className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground active:bg-accent/70 transition"
+            >
+              <RaveMark className="h-3 w-3 text-primary" />
+              {getModel(modelId).name}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${modelMenu ? "rotate-180" : ""}`} />
+            </button>
+            {modelMenu && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="glass-strong animate-pop absolute bottom-10 z-20 w-64 rounded-2xl p-1.5 shadow-2xl"
+              >
+                {CHAT_MODELS.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      setModelId(m.id);
+                      saveModel(m.id);
+                      setModelMenu(false);
+                    }}
+                    className="flex w-full items-start gap-2 rounded-xl px-3 py-2.5 text-left active:bg-accent/70 transition"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{m.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{m.hint}</div>
+                    </div>
+                    {modelId === m.id && <Check className="mt-1 h-4 w-4 shrink-0 text-primary" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="glass flex items-end gap-1.5 rounded-[32px] px-2 py-2 shadow-lg shadow-black/20 focus-within:ring-2 focus-within:ring-ring/40 transition">
             <input
