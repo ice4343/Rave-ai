@@ -148,19 +148,61 @@ async function handleChat(request: Request) {
         const currentContent = parts.length > 0 ? parts : body.message;
 
 
+        const model = getModel(body.model);
+
         const messages = [
           { role: "system", content: systemPrompt },
           ...(history ?? []).map((m) => ({ role: m.role, content: stripImages(m.content) })),
           { role: "user", content: currentContent },
         ];
 
-        const upstream = await fetch(GATEWAY, {
+        // OpenAI models are served by the gateway Responses API, which uses a
+        // different request body and SSE event shape.
+        const responsesInput = [
+          ...(history ?? []).map((m) => ({
+            role: m.role === "assistant" ? "assistant" : "user",
+            content: [
+              {
+                type: m.role === "assistant" ? "output_text" : "input_text",
+                text: stripImages(m.content),
+              },
+            ],
+          })),
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: body.message || "Please review the attachment." },
+              ...(body.image ? [{ type: "input_image", image_url: body.image }] : []),
+              ...(body.file
+                ? [
+                    {
+                      type: "input_file",
+                      filename: body.file.name,
+                      file_data: body.file.dataUrl,
+                    },
+                  ]
+                : []),
+            ],
+          },
+        ];
+
+        const upstream = await fetch(model.api === "responses" ? RESPONSES : GATEWAY, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${lovableKey}`,
           },
-          body: JSON.stringify({ model: MODEL, messages, stream: true }),
+          body: JSON.stringify(
+            model.api === "responses"
+              ? {
+                  model: model.id,
+                  instructions: systemPrompt,
+                  input: responsesInput,
+                  stream: true,
+                  store: false,
+                }
+              : { model: model.id, messages, stream: true },
+          ),
         });
 
         if (!upstream.ok || !upstream.body) {
