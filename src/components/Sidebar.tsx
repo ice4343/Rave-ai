@@ -132,7 +132,7 @@ export const Sidebar = memo(function Sidebar({
         <div className="px-3 pt-[env(safe-area-inset-top)] pb-3">
           <div className="flex items-center gap-2 min-w-0 h-14 px-1">
             <div className="h-8 w-8 shrink-0 rounded-xl bg-background/60 border border-[var(--glass-border)] flex items-center justify-center">
-              <RaveMark className="h-4.5 w-4.5 text-primary" />
+              <RaveMark className="h-4 w-4 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-sm leading-tight truncate">
@@ -232,7 +232,7 @@ export const Sidebar = memo(function Sidebar({
                           <MoreVertical className="h-4 w-4" />
                         </button>
                         {menuFor === t.id && (
-                          <div className="glass-strong absolute right-2 top-[calc(100%-6px)] z-50 w-36 overflow-hidden rounded-2xl border border-[var(--glass-border)] shadow-xl">
+                          <div onPointerDown={(e) => e.stopPropagation()} className="glass-strong absolute right-2 top-[calc(100%-6px)] z-50 w-36 overflow-hidden rounded-2xl border border-[var(--glass-border)] shadow-xl">
                             <button
                               onClick={() => startRename(t)}
                               className="flex w-full items-center gap-2 px-3 py-2.5 text-sm active:bg-accent/70"
