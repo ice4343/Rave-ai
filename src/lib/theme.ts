@@ -172,8 +172,8 @@ export type ThemeSettings = {
 };
 
 export const DEFAULT_SETTINGS: ThemeSettings = {
-  accent: "amber",
-  surface: "space",
+  accent: "matrix",
+  surface: "onyx",
   mode: "dark",
   fontScale: 1,
   glass: true,
