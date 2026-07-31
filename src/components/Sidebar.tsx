@@ -1,8 +1,9 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Settings, MessageSquare, Search, X } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { Plus, Trash2, Settings, MessageSquare, Search, X, MoreVertical, Pencil } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { RaveMark } from "@/components/RaveMark";
 
 type Thread = { id: string; title: string; updated_at: string };
 
@@ -20,6 +21,28 @@ export const Sidebar = memo(function Sidebar({
   const params = useParams({ strict: false }) as { threadId?: string };
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const renameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (renamingId) renameRef.current?.focus();
+  }, [renamingId]);
+
+  useEffect(() => {
+    if (!menuFor) return;
+    const close = () => setMenuFor(null);
+    window.addEventListener("pointerdown", close);
+    return () => window.removeEventListener("pointerdown", close);
+  }, [menuFor]);
+
+  useEffect(() => {
+    if (!open) {
+      setMenuFor(null);
+      setRenamingId(null);
+    }
+  }, [open]);
 
   const { data: threads = [] } = useQuery({
     queryKey: ["threads"],
@@ -74,6 +97,24 @@ export const Sidebar = memo(function Sidebar({
     qc.invalidateQueries({ queryKey: ["threads"] });
   };
 
+  const startRename = (t: Thread) => {
+    setMenuFor(null);
+    setRenamingId(t.id);
+    setRenameValue(t.title || "New chat");
+  };
+
+  const commitRename = async (id: string) => {
+    const next = renameValue.trim();
+    setRenamingId(null);
+    if (!next) return;
+    const current = threads.find((t) => t.id === id);
+    if (!current || current.title === next) return;
+    qc.setQueryData<Thread[]>(["threads"], (old) =>
+      (old ?? []).map((t) => (t.id === id ? { ...t, title: next } : t)),
+    );
+    await supabase.from("threads").update({ title: next }).eq("id", id);
+  };
+
   return (
     <>
       <div
@@ -90,8 +131,8 @@ export const Sidebar = memo(function Sidebar({
       >
         <div className="px-3 pt-[env(safe-area-inset-top)] pb-3">
           <div className="flex items-center gap-2 min-w-0 h-14 px-1">
-            <div className="h-8 w-8 shrink-0 rounded-xl bg-primary/90 flex items-center justify-center text-primary-foreground text-sm font-bold">
-              R
+            <div className="h-8 w-8 shrink-0 rounded-xl bg-background/60 border border-[var(--glass-border)] flex items-center justify-center">
+              <RaveMark className="h-4 w-4 text-primary" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-sm leading-tight truncate">
@@ -140,34 +181,79 @@ export const Sidebar = memo(function Sidebar({
             <ul className="px-2 space-y-0.5">
               {filtered.map((t) => {
                 const active = params.threadId === t.id;
+                const renaming = renamingId === t.id;
                 return (
                   <li key={t.id} className="relative">
-                    <Link
-                      to="/chat/$threadId"
-                      params={{ threadId: t.id }}
-                      onClick={onClose}
-                      className={`flex items-center gap-2.5 rounded-2xl pl-3 pr-10 py-3 text-sm transition ${
-                        active
-                          ? "bg-primary/15 text-foreground border border-primary/25"
-                          : "text-sidebar-foreground/85 active:bg-sidebar-accent/60 border border-transparent"
-                      }`}
-                    >
-                      <MessageSquare
-                        className={`h-3.5 w-3.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`}
-                      />
-                      <span className="truncate flex-1">{t.title || "New chat"}</span>
-                    </Link>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        deleteThread(t.id);
-                      }}
-                      aria-label="Delete chat"
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-2 text-muted-foreground active:text-destructive active:bg-destructive/15 transition"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {renaming ? (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          commitRename(t.id);
+                        }}
+                        className="px-1 py-1.5"
+                      >
+                        <input
+                          ref={renameRef}
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onBlur={() => commitRename(t.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") setRenamingId(null);
+                          }}
+                          className="glass w-full rounded-2xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/40"
+                        />
+                      </form>
+                    ) : (
+                      <>
+                        <Link
+                          to="/chat/$threadId"
+                          params={{ threadId: t.id }}
+                          onClick={onClose}
+                          className={`flex items-center gap-2.5 rounded-2xl pl-3 pr-10 py-3 text-sm transition ${
+                            active
+                              ? "bg-primary/15 text-foreground border border-primary/25"
+                              : "text-sidebar-foreground/85 active:bg-sidebar-accent/60 border border-transparent"
+                          }`}
+                        >
+                          <MessageSquare
+                            className={`h-3.5 w-3.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`}
+                          />
+                          <span className="truncate flex-1">{t.title || "New chat"}</span>
+                        </Link>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setMenuFor(menuFor === t.id ? null : t.id);
+                          }}
+                          aria-label="Chat options"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-2 text-muted-foreground active:bg-accent/70 transition"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                        {menuFor === t.id && (
+                          <div onPointerDown={(e) => e.stopPropagation()} className="glass-strong absolute right-2 top-[calc(100%-6px)] z-50 w-36 overflow-hidden rounded-2xl border border-[var(--glass-border)] shadow-xl">
+                            <button
+                              onClick={() => startRename(t)}
+                              className="flex w-full items-center gap-2 px-3 py-2.5 text-sm active:bg-accent/70"
+                            >
+                              <Pencil className="h-4 w-4 text-muted-foreground" />
+                              Rename
+                            </button>
+                            <button
+                              onClick={() => {
+                                setMenuFor(null);
+                                deleteThread(t.id);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-destructive active:bg-destructive/15"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </li>
                 );
               })}
