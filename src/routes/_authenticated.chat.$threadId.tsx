@@ -131,11 +131,14 @@ function ChatPage() {
   }, [messages, streaming]);
 
   useEffect(() => {
-    if (!menuOpen) return;
-    const close = () => setMenuOpen(false);
+    if (!menuOpen && !modelMenu) return;
+    const close = () => {
+      setMenuOpen(false);
+      setModelMenu(false);
+    };
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
-  }, [menuOpen]);
+  }, [menuOpen, modelMenu]);
 
   const autosize = () => {
     const el = inputRef.current;
