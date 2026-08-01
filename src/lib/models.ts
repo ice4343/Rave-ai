@@ -41,11 +41,14 @@ export const CHAT_MODELS: ChatModel[] = [
   },
 ];
 
-export const DEFAULT_MODEL = CHAT_MODELS[0].id;
+export const DEFAULT_MODEL = "rave/web";
+
+const FALLBACK = CHAT_MODELS.find((m) => m.id === DEFAULT_MODEL) ?? CHAT_MODELS[0];
 
 export function getModel(id?: string | null): ChatModel {
-  return CHAT_MODELS.find((m) => m.id === id) ?? CHAT_MODELS[0];
+  return CHAT_MODELS.find((m) => m.id === id) ?? FALLBACK;
 }
+
 
 const KEY = "rave.model.v1";
 
