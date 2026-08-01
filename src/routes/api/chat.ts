@@ -262,7 +262,7 @@ async function handleChat(request: Request) {
                   stream: true,
                   store: false,
                 }
-              : { model: model.id, messages, stream: true },
+              : { model: model.api === "web" ? WEB_MODEL : model.id, messages, stream: true },
           ),
         });
 
