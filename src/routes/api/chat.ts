@@ -24,6 +24,35 @@ const WEB_MODEL = "google/gemini-3.6-flash";
 
 type WebSource = { title: string; url: string };
 
+/** Cheap classifier: does this prompt need fresh info from the internet? */
+async function needsWebSearch(message: string, lovableKey: string) {
+  const q = message.trim();
+  if (q.length < 8) return false;
+  try {
+    const res = await fetch(GATEWAY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${lovableKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-3.1-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Decide if answering the user's message requires a live web search. Answer NO for greetings, small talk, opinions, jokes, math, coding, writing/editing, translation, or anything answerable from general knowledge. Answer YES only for current events, news, prices, weather, sports scores, live/real-time data, recent releases, or specific facts about a named person, product, or site that likely changed recently. Reply with exactly YES or NO.",
+          },
+          { role: "user", content: q.slice(0, 600) },
+        ],
+      }),
+    });
+    if (!res.ok) return false;
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    return /yes/i.test(json.choices?.[0]?.message?.content ?? "");
+  } catch {
+    return false;
+  }
+}
+
+
 /** Live web search via Firecrawl; returns a context block + sources. */
 async function webSearch(query: string, lovableKey: string) {
   const key = process.env.FIRECRAWL_API_KEY;
@@ -200,16 +229,19 @@ async function handleChat(request: Request) {
 
         const model = getModel(body.model);
 
-        // "Rave Web": fetch live results first, then answer grounded in them.
+        // "Rave Web": only search when the question actually needs live info.
         let web = { context: "", sources: [] as WebSource[] };
-        if (model.api === "web" && body.message) {
-          web = await webSearch(body.message, lovableKey);
+        let searched = false;
+        if (model.api === "web" && body.message && !body.image && !body.file) {
+          searched = await needsWebSearch(body.message, lovableKey);
+          if (searched) web = await webSearch(body.message, lovableKey);
         }
         const webSystem = web.context
-          ? `${systemPrompt}\n\nYou have live web search results for the user's question. Answer using them, be current and factual, and cite sources inline as [1], [2] matching the numbered results. If the results don't answer the question, say so.\n\nWeb results:\n${web.context}`
-          : model.api === "web"
+          ? `${systemPrompt}\n\nYou have live web search results for the user's question. Answer using them, be current and factual, and weave the facts into your own words. Do not print a list of sources, URLs, or bracketed citations.\n\nWeb results:\n${web.context}`
+          : searched
             ? `${systemPrompt}\n\nA live web search was attempted but returned no usable results. Answer from your own knowledge and say that you couldn't fetch live data.`
             : systemPrompt;
+
 
         const messages = [
           { role: "system", content: model.api === "web" ? webSystem : systemPrompt },
@@ -319,16 +351,6 @@ async function handleChat(request: Request) {
                     // ignore parse errors on partial lines
                   }
                 }
-              }
-              if (web.sources.length > 0 && fullText.trim().length > 0) {
-                const block =
-                  "\n\n---\n**Sources**\n" +
-                  web.sources
-                    .filter((s) => s.url)
-                    .map((s, i) => `${i + 1}. [${s.title}](${s.url})`)
-                    .join("\n");
-                fullText += block;
-                controller.enqueue(encoder.encode(block));
               }
             } catch (e) {
               console.error("stream read error", e);
