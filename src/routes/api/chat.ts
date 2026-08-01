@@ -320,6 +320,16 @@ async function handleChat(request: Request) {
                   }
                 }
               }
+              if (web.sources.length > 0 && fullText.trim().length > 0) {
+                const block =
+                  "\n\n---\n**Sources**\n" +
+                  web.sources
+                    .filter((s) => s.url)
+                    .map((s, i) => `${i + 1}. [${s.title}](${s.url})`)
+                    .join("\n");
+                fullText += block;
+                controller.enqueue(encoder.encode(block));
+              }
             } catch (e) {
               console.error("stream read error", e);
             } finally {
