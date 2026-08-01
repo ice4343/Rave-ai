@@ -4,8 +4,8 @@ export type ChatModel = {
   id: string;
   name: string;
   hint: string;
-  /** OpenAI models are served by the gateway Responses API. */
-  api: "chat" | "responses";
+  /** OpenAI models are served by the gateway Responses API. "web" = live web search first. */
+  api: "chat" | "responses" | "web";
 };
 
 export const CHAT_MODELS: ChatModel[] = [
@@ -32,6 +32,12 @@ export const CHAT_MODELS: ChatModel[] = [
     name: "Rave GPT Max",
     hint: "GPT-5.6 flagship — hardest tasks",
     api: "responses",
+  },
+  {
+    id: "rave/web",
+    name: "Rave Web",
+    hint: "Searches the internet live, answers with sources",
+    api: "web",
   },
 ];
 
