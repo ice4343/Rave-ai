@@ -200,16 +200,19 @@ async function handleChat(request: Request) {
 
         const model = getModel(body.model);
 
-        // "Rave Web": fetch live results first, then answer grounded in them.
+        // "Rave Web": only search when the question actually needs live info.
         let web = { context: "", sources: [] as WebSource[] };
-        if (model.api === "web" && body.message) {
-          web = await webSearch(body.message, lovableKey);
+        let searched = false;
+        if (model.api === "web" && body.message && !body.image && !body.file) {
+          searched = await needsWebSearch(body.message, lovableKey);
+          if (searched) web = await webSearch(body.message, lovableKey);
         }
         const webSystem = web.context
-          ? `${systemPrompt}\n\nYou have live web search results for the user's question. Answer using them, be current and factual, and cite sources inline as [1], [2] matching the numbered results. If the results don't answer the question, say so.\n\nWeb results:\n${web.context}`
-          : model.api === "web"
+          ? `${systemPrompt}\n\nYou have live web search results for the user's question. Answer using them, be current and factual, and weave the facts into your own words. Do not print a list of sources, URLs, or bracketed citations.\n\nWeb results:\n${web.context}`
+          : searched
             ? `${systemPrompt}\n\nA live web search was attempted but returned no usable results. Answer from your own knowledge and say that you couldn't fetch live data.`
             : systemPrompt;
+
 
         const messages = [
           { role: "system", content: model.api === "web" ? webSystem : systemPrompt },
