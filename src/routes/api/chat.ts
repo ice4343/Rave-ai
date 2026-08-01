@@ -19,6 +19,56 @@ function sanitize(s: string) {
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const RESPONSES = "https://ai.gateway.lovable.dev/v1/responses";
+const FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
+const WEB_MODEL = "google/gemini-3.6-flash";
+
+type WebSource = { title: string; url: string };
+
+/** Live web search via Firecrawl; returns a context block + sources. */
+async function webSearch(query: string, lovableKey: string) {
+  const key = process.env.FIRECRAWL_API_KEY;
+  if (!key) return { context: "", sources: [] as WebSource[] };
+  try {
+    const res = await fetch(`${FIRECRAWL}/search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": key,
+      },
+      body: JSON.stringify({
+        query,
+        limit: 5,
+        scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
+      }),
+    });
+    if (!res.ok) {
+      console.error("firecrawl search failed", res.status, (await res.text()).slice(0, 300));
+      return { context: "", sources: [] as WebSource[] };
+    }
+    const json = (await res.json()) as {
+      data?: { web?: unknown[] } | unknown[];
+    };
+    const raw = Array.isArray(json.data)
+      ? json.data
+      : ((json.data as { web?: unknown[] } | undefined)?.web ?? []);
+    const items = (raw as Array<Record<string, unknown>>).slice(0, 5);
+    const sources: WebSource[] = items.map((r) => ({
+      title: String(r.title ?? r.url ?? "Source"),
+      url: String(r.url ?? ""),
+    }));
+    const context = items
+      .map((r, i) => {
+        const body = String(r.markdown ?? r.description ?? "").slice(0, 2500);
+        return `[${i + 1}] ${r.title ?? ""} — ${r.url ?? ""}\n${body}`;
+      })
+      .join("\n\n---\n\n");
+    return { context, sources };
+  } catch (e) {
+    console.error("firecrawl error", e);
+    return { context: "", sources: [] as WebSource[] };
+  }
+}
 
 function makeUserClient(token: string) {
   const url = process.env.SUPABASE_URL!;
@@ -150,8 +200,19 @@ async function handleChat(request: Request) {
 
         const model = getModel(body.model);
 
+        // "Rave Web": fetch live results first, then answer grounded in them.
+        let web = { context: "", sources: [] as WebSource[] };
+        if (model.api === "web" && body.message) {
+          web = await webSearch(body.message, lovableKey);
+        }
+        const webSystem = web.context
+          ? `${systemPrompt}\n\nYou have live web search results for the user's question. Answer using them, be current and factual, and cite sources inline as [1], [2] matching the numbered results. If the results don't answer the question, say so.\n\nWeb results:\n${web.context}`
+          : model.api === "web"
+            ? `${systemPrompt}\n\nA live web search was attempted but returned no usable results. Answer from your own knowledge and say that you couldn't fetch live data.`
+            : systemPrompt;
+
         const messages = [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: model.api === "web" ? webSystem : systemPrompt },
           ...(history ?? []).map((m) => ({ role: m.role, content: stripImages(m.content) })),
           { role: "user", content: currentContent },
         ];
@@ -201,7 +262,7 @@ async function handleChat(request: Request) {
                   stream: true,
                   store: false,
                 }
-              : { model: model.id, messages, stream: true },
+              : { model: model.api === "web" ? WEB_MODEL : model.id, messages, stream: true },
           ),
         });
 
@@ -258,6 +319,16 @@ async function handleChat(request: Request) {
                     // ignore parse errors on partial lines
                   }
                 }
+              }
+              if (web.sources.length > 0 && fullText.trim().length > 0) {
+                const block =
+                  "\n\n---\n**Sources**\n" +
+                  web.sources
+                    .filter((s) => s.url)
+                    .map((s, i) => `${i + 1}. [${s.title}](${s.url})`)
+                    .join("\n");
+                fullText += block;
+                controller.enqueue(encoder.encode(block));
               }
             } catch (e) {
               console.error("stream read error", e);
