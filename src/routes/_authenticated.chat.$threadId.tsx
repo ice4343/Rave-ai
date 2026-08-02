@@ -542,20 +542,100 @@ function MenuItem({
   );
 }
 
+function stripAttachments(content: string) {
+  return content.replace(/!\[[^\]]*\]\(data:image\/[^)]+\)/g, "").trim();
+}
+
+function CopyButton({ text, label = "Copy message" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      return;
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1400);
+  };
+  return (
+    <button
+      onClick={copy}
+      aria-label={label}
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground active:bg-accent/70 transition"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
 const Bubble = memo(function Bubble({
   role,
   content,
   streaming,
+  onEdit,
 }: {
   role: "user" | "assistant" | "system";
   content: string;
   streaming?: boolean;
+  onEdit?: (text: string) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
   if (role === "user") {
+    const plain = stripAttachments(content);
+    if (editing) {
+      return (
+        <div className="flex justify-end animate-rise">
+          <div className="glass w-full max-w-[92%] rounded-3xl p-2">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={3}
+              autoFocus
+              className="w-full resize-none bg-transparent px-2 py-1.5 text-[0.95rem] outline-none"
+            />
+            <div className="flex justify-end gap-2 px-1 pb-0.5">
+              <button
+                onClick={() => setEditing(false)}
+                className="rounded-full px-3 py-1.5 text-xs text-muted-foreground active:bg-accent/70 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setEditing(false);
+                  onEdit?.(draft);
+                }}
+                disabled={!draft.trim()}
+                className="rounded-full bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground active:scale-95 transition disabled:opacity-40"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
-      <div className="flex justify-end animate-rise">
+      <div className="flex flex-col items-end gap-0.5 animate-rise">
         <div className="max-w-[85%] rounded-3xl rounded-br-lg bg-primary text-primary-foreground px-4 py-2.5 text-[0.95rem] shadow-lg shadow-primary/15 whitespace-pre-wrap break-words">
           <UserContent content={content} />
+        </div>
+        <div className="flex items-center gap-0.5 pr-1">
+          <CopyButton text={plain} label="Copy your message" />
+          {onEdit && (
+            <button
+              onClick={() => {
+                setDraft(plain);
+                setEditing(true);
+              }}
+              aria-label="Edit message"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground active:bg-accent/70 transition"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
     );
@@ -566,12 +646,20 @@ const Bubble = memo(function Bubble({
         <RaveMark className="h-5 w-5 text-primary" />
       </div>
 
-      <div className={`msg-prose text-[0.95rem] flex-1 min-w-0 ${streaming ? "streaming-cursor" : ""}`}>
-        <Markdown content={content} />
+      <div className="flex-1 min-w-0">
+        <div className={`msg-prose text-[0.95rem] ${streaming ? "streaming-cursor" : ""}`}>
+          <Markdown content={content} />
+        </div>
+        {!streaming && (
+          <div className="-ml-1 mt-0.5">
+            <CopyButton text={stripAttachments(content)} label="Copy reply" />
+          </div>
+        )}
       </div>
     </div>
   );
 });
+
 
 function UserContent({ content }: { content: string }) {
   const match = content.match(/!\[[^\]]*\]\((data:image\/[^)]+)\)/);
