@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { applySettings, loadSettings } from "../lib/theme";
+
 
 function NotFoundComponent() {
   return (
@@ -118,6 +120,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Apply the saved theme everywhere, including the login page.
+  useEffect(() => {
+    applySettings(loadSettings());
+  }, []);
+
 
   return (
     <QueryClientProvider client={queryClient}>
