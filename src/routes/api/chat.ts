@@ -27,7 +27,7 @@ type WebSource = { title: string; url: string };
 /** Cheap classifier: does this prompt need fresh info from the internet? */
 async function needsWebSearch(message: string, lovableKey: string) {
   const q = message.trim();
-  if (q.length < 8) return false;
+  if (q.length < 3) return false;
   try {
     const res = await fetch(GATEWAY, {
       method: "POST",
@@ -37,13 +37,32 @@ async function needsWebSearch(message: string, lovableKey: string) {
         messages: [
           {
             role: "system",
-            content:
-              "Decide if answering the user's message requires a live web search. Answer NO for greetings, small talk, opinions, jokes, math, coding, writing/editing, translation, or anything answerable from general knowledge. Answer YES only for current events, news, prices, weather, sports scores, live/real-time data, recent releases, or specific facts about a named person, product, or site that likely changed recently. Reply with exactly YES or NO.",
+            content: [
+              "You are a router that decides whether answering the user's message requires calling a web_search tool BEFORE answering.",
+              "Decide if the question depends on information that changes over time or could have changed after a model's training cutoff.",
+              "",
+              "ALWAYS answer YES for:",
+              "- Current standings, rankings, scores, or leaderboards (sports, competitions)",
+              '- "Who is the current X" (CEO, president, champion, holder of any role or title)',
+              "- Prices, stock values, exchange rates, or any numeric data that fluctuates",
+              '- Recent news, events, or anything with words like "latest", "current", "now", "still", "today", "this season", "this year"',
+              "- Specific dates, scores, or stats that would otherwise be recalled from memory rather than known with certainty",
+              "",
+              "Answer NO for:",
+              "- Greetings and small talk",
+              "- Timeless facts, definitions, historical events with fixed outcomes",
+              "- Math, logic, code, general reasoning, writing/editing, translation",
+              "- Anything explicitly hypothetical or creative",
+              "",
+              "If uncertain whether a fact could be outdated, default to YES — being wrong is worse than one extra API call.",
+              "Reply with exactly YES or NO.",
+            ].join("\n"),
           },
           { role: "user", content: q.slice(0, 600) },
         ],
       }),
     });
+
     if (!res.ok) return false;
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     return /yes/i.test(json.choices?.[0]?.message?.content ?? "");
