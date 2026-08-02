@@ -329,9 +329,15 @@ function ChatPage() {
           ) : (
             <div className="space-y-5">
               {messages.map((m) => (
-                <Bubble key={m.id} role={m.role} content={m.content} />
+                <Bubble
+                  key={m.id}
+                  role={m.role}
+                  content={m.content}
+                  onEdit={m.role === "user" ? (t) => editMessage(m, t) : undefined}
+                />
               ))}
               {streaming && <Bubble role="assistant" content={streaming} streaming />}
+
               {busy && !streaming && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground pl-1">
                   <span className="inline-flex gap-1">
