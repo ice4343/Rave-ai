@@ -172,8 +172,9 @@ export type ThemeSettings = {
 };
 
 export const DEFAULT_SETTINGS: ThemeSettings = {
-  accent: "matrix",
+  accent: "mono",
   surface: "onyx",
+
   mode: "dark",
   fontScale: 1,
   glass: true,
