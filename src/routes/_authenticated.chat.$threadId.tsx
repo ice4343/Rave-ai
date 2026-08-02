@@ -187,20 +187,16 @@ function ChatPage() {
     }
   };
 
-  const send = async () => {
-    const text = input.trim();
-    if ((!text && !attachment && !fileAttachment) || busy) return;
-    const image = attachment;
-    const file = fileAttachment;
+  const runPrompt = async (
+    text: string,
+    image: string | null,
+    file: FileAttachment | null,
+  ) => {
     const wasImage = !image && !file && isImageRequest(text);
-    setInput("");
-    setAttachment(null);
-    setFileAttachment(null);
     setError(null);
     setBusy(true);
     setPainting(wasImage);
     setStreaming("");
-    requestAnimationFrame(autosize);
 
     const outgoing = file?.text
       ? `${text}\n\n--- Attached file: ${file.name} ---\n${file.text}`
@@ -269,6 +265,40 @@ function ChatPage() {
       setPainting(false);
     }
   };
+
+  const send = async () => {
+    const text = input.trim();
+    if ((!text && !attachment && !fileAttachment) || busy) return;
+    const image = attachment;
+    const file = fileAttachment;
+    setInput("");
+    setAttachment(null);
+    setFileAttachment(null);
+    requestAnimationFrame(autosize);
+    await runPrompt(text, image, file);
+  };
+
+  // Edit a sent prompt: drop it (and everything after it) then re-run the turn.
+  const editMessage = async (msg: Msg, newText: string) => {
+    const text = newText.trim();
+    if (!text || busy) return;
+    const list = qc.getQueryData<Msg[]>(["messages", threadId]) ?? messages;
+    const idx = list.findIndex((m) => m.id === msg.id);
+    const removed = idx >= 0 ? list.slice(idx) : [msg];
+    const ids = removed.map((m) => m.id).filter((id) => !id.startsWith("optimistic-"));
+    qc.setQueryData<Msg[]>(["messages", threadId], idx >= 0 ? list.slice(0, idx) : list);
+    if (ids.length) {
+      const { error: delError } = await supabase.from("messages").delete().in("id", ids);
+      if (delError) {
+        setError("Couldn't update that message.");
+        qc.invalidateQueries({ queryKey: ["messages", threadId] });
+        return;
+      }
+    }
+    const image = msg.content.match(/!\[[^\]]*\]\((data:image\/[^)]+)\)/)?.[1] ?? null;
+    await runPrompt(text, image, null);
+  };
+
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const enterToSend = loadSettings().enterToSend;
