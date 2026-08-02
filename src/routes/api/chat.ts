@@ -256,7 +256,7 @@ async function handleChat(request: Request) {
           if (searched) web = await webSearch(body.message, lovableKey);
         }
         const webSystem = web.context
-          ? `${systemPrompt}\n\nYou have live web search results for the user's question. Answer using them, be current and factual, and weave the facts into your own words. Do not print a list of sources, URLs, or bracketed citations.\n\nWeb results:\n${web.context}`
+          ? `${systemPrompt}\n\nA web_search tool was called for this question and returned fresh results below. Answer from these results, not from memory. State the facts plainly in your own words, and do not guess or add any detail the results did not confirm — if something wasn't covered, say so. Do not print a list of sources, URLs, or bracketed citations.\n\nWeb results:\n${web.context}`
           : searched
             ? `${systemPrompt}\n\nA live web search was attempted but returned no usable results. Answer from your own knowledge and say that you couldn't fetch live data.`
             : systemPrompt;
