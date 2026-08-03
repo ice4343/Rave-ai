@@ -30,10 +30,15 @@ export const Route = createFileRoute("/api/generate-image")({
         }
         const token = authHeader.slice(7);
 
-        const body = (await request.json()) as { threadId: string; prompt: string };
+        const body = (await request.json()) as {
+          threadId: string;
+          prompt: string;
+          baseImage?: string | null;
+        };
         if (!body?.threadId || !body?.prompt) {
           return new Response("Bad request", { status: 400 });
         }
+
 
         const lovableKey = process.env.LOVABLE_API_KEY;
         if (!lovableKey) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
