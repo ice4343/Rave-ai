@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { memo, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowUp, Loader2, Plus, ImageIcon, Paperclip, X, FileText, Check, ChevronDown, Copy, Pencil } from "lucide-react";
+import { ArrowUp, Loader2, Plus, ImageIcon, Paperclip, X, FileText, Check, ChevronDown, Copy, Pencil, Download } from "lucide-react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import { loadSettings } from "@/lib/theme";
@@ -661,13 +661,90 @@ const Bubble = memo(function Bubble({
 });
 
 
+function downloadImage(src: string) {
+  const a = document.createElement("a");
+  a.href = src;
+  a.download = `rave-image-${Date.now()}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+const ChatImage = memo(function ChatImage({ src, alt }: { src: string; alt: string }) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  return (
+    <>
+      <span className="relative block my-2 w-fit max-w-full group">
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          onClick={() => setOpen(true)}
+          className="rounded-2xl border border-[var(--glass-border)] max-w-full h-auto cursor-zoom-in"
+        />
+        <button
+          type="button"
+          onClick={() => downloadImage(src)}
+          aria-label="Download image"
+          className="absolute top-2 right-2 h-8 w-8 rounded-full glass-strong flex items-center justify-center text-foreground/80 active:scale-95 transition"
+        >
+          <Download className="h-4 w-4" />
+        </button>
+      </span>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex flex-col animate-pop"
+          onClick={() => setOpen(false)}
+        >
+          <div className="flex justify-end gap-2 p-3" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => downloadImage(src)}
+              aria-label="Download image"
+              className="h-9 w-9 rounded-full glass-strong flex items-center justify-center"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close"
+              className="h-9 w-9 rounded-full glass-strong flex items-center justify-center"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-3 overflow-auto">
+            <img
+              src={src}
+              alt={alt}
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-full max-h-full object-contain rounded-xl"
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+});
+
 function UserContent({ content }: { content: string }) {
   const match = content.match(/!\[[^\]]*\]\((data:image\/[^)]+)\)/);
   if (!match) return <>{content}</>;
   const text = content.replace(match[0], "").trim();
   return (
     <>
-      <img src={match[1]} alt="attachment" className="rounded-2xl max-w-full h-auto mb-2" />
+      <ChatImage src={match[1]} alt="attachment" />
       {text}
     </>
   );
@@ -679,14 +756,8 @@ function Markdown({ content }: { content: string }) {
       // Default transform strips `data:` URLs, which blanks out generated images.
       urlTransform={(url) => (url.startsWith("data:image/") ? url : defaultUrlTransform(url))}
       components={{
-        img: ({ node: _n, ...props }) => (
-          <img
-            {...props}
-            loading="lazy"
-            className="rounded-2xl border border-[var(--glass-border)] max-w-full h-auto my-2"
-            alt={props.alt ?? "generated"}
-          />
-        ),
+        img: ({ src, alt }) => <ChatImage src={String(src ?? "")} alt={alt ?? "generated"} />,
+        p: ({ children }) => <p>{children}</p>,
       }}
     >
       {content}
