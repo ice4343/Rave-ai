@@ -216,7 +216,13 @@ function ChatPage() {
     image: string | null,
     file: FileAttachment | null,
   ) => {
-    const wasImage = !image && !file && isImageRequest(text);
+    // If the assistant just produced an image and the prompt reads like an
+    // edit instruction, feed that image back in as the base to edit.
+    const priorList = qc.getQueryData<Msg[]>(["messages", threadId]) ?? messages;
+    const baseImage =
+      !image && !file ? lastGeneratedImage(priorList) : null;
+    const wasEdit = !!baseImage && isImageEditRequest(text);
+    const wasImage = (!image && !file && isImageRequest(text)) || wasEdit;
     setError(null);
     setBusy(true);
     setPainting(wasImage);
@@ -246,10 +252,15 @@ function ChatPage() {
         const res = await fetch("/api/generate-image", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ threadId, prompt: toImagePrompt(text) }),
+          body: JSON.stringify({
+            threadId,
+            prompt: wasEdit ? text : toImagePrompt(text),
+            baseImage: wasEdit ? baseImage : null,
+          }),
         });
         if (!res.ok) throw new Error((await res.text()) || "Image request failed");
       } else {
+
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
