@@ -80,9 +80,23 @@ export const Route = createFileRoute("/api/generate-image")({
           },
           body: JSON.stringify({
             model: MODEL,
-            messages: [{ role: "user", content: body.prompt }],
+            messages: [
+              {
+                role: "user",
+                content: body.baseImage
+                  ? [
+                      {
+                        type: "text",
+                        text: `Edit the attached image: ${body.prompt}. Keep everything else in the image — the subject's identity, pose, clothing, lighting, background and style — exactly the same, and apply only the requested change. Return the edited image.`,
+                      },
+                      { type: "image_url", image_url: { url: body.baseImage } },
+                    ]
+                  : body.prompt,
+              },
+            ],
             modalities: ["image", "text"],
           }),
+
         });
 
         if (!upstream.ok) {
