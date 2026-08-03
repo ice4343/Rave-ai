@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { memo, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowUp, Loader2, Plus, ImageIcon, Paperclip, X, FileText, Check, ChevronDown, Copy, Pencil } from "lucide-react";
+import { ArrowUp, Loader2, Plus, ImageIcon, Paperclip, X, FileText, Check, ChevronDown, Copy, Pencil, Download } from "lucide-react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import { loadSettings } from "@/lib/theme";
