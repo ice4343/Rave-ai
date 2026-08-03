@@ -17,6 +17,30 @@ function isImageRequest(text: string) {
   return IMAGE_INTENT.test(text);
 }
 
+// Follow-up edits on a just-generated image: "make him hold an ice cream",
+// "remove the background", "add sunglasses", "make it night", ...
+const IMAGE_EDIT_INTENT =
+  /\b(?:make|change|turn|add|remove|delete|erase|replace|swap|put|give|set|edit|redraw|recolor|recolour|color|colour|zoom|crop|rotate|flip|blur|brighten|darken|fix|adjust|convert|render|resize|extend|retouch|restyle|style|dress|move)\b/i;
+
+function isImageEditRequest(text: string) {
+  const t = text.trim();
+  if (!t || t.length > 300) return false;
+  if (/\?\s*$/.test(t)) return false; // questions are chat, not edits
+  return IMAGE_EDIT_INTENT.test(t);
+}
+
+// The most recent image in the conversation, if the assistant produced it last.
+function lastGeneratedImage(list: { role: string; content: string }[]) {
+  for (let i = list.length - 1; i >= 0; i--) {
+    const m = list[i];
+    const url = m.content.match(/!\[[^\]]*\]\((data:image\/[^)]+)\)/)?.[1];
+    if (m.role === "assistant" && url) return url;
+    if (m.role === "assistant" && !url) return null; // a text reply broke the image context
+  }
+  return null;
+}
+
+
 function toImagePrompt(text: string) {
   const cleaned = text
     .replace(
@@ -192,7 +216,13 @@ function ChatPage() {
     image: string | null,
     file: FileAttachment | null,
   ) => {
-    const wasImage = !image && !file && isImageRequest(text);
+    // If the assistant just produced an image and the prompt reads like an
+    // edit instruction, feed that image back in as the base to edit.
+    const priorList = qc.getQueryData<Msg[]>(["messages", threadId]) ?? messages;
+    const baseImage =
+      !image && !file ? lastGeneratedImage(priorList) : null;
+    const wasEdit = !!baseImage && isImageEditRequest(text);
+    const wasImage = (!image && !file && isImageRequest(text)) || wasEdit;
     setError(null);
     setBusy(true);
     setPainting(wasImage);
@@ -222,10 +252,15 @@ function ChatPage() {
         const res = await fetch("/api/generate-image", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ threadId, prompt: toImagePrompt(text) }),
+          body: JSON.stringify({
+            threadId,
+            prompt: wasEdit ? text : toImagePrompt(text),
+            baseImage: wasEdit ? baseImage : null,
+          }),
         });
         if (!res.ok) throw new Error((await res.text()) || "Image request failed");
       } else {
+
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

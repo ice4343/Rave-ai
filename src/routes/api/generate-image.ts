@@ -30,10 +30,15 @@ export const Route = createFileRoute("/api/generate-image")({
         }
         const token = authHeader.slice(7);
 
-        const body = (await request.json()) as { threadId: string; prompt: string };
+        const body = (await request.json()) as {
+          threadId: string;
+          prompt: string;
+          baseImage?: string | null;
+        };
         if (!body?.threadId || !body?.prompt) {
           return new Response("Bad request", { status: 400 });
         }
+
 
         const lovableKey = process.env.LOVABLE_API_KEY;
         if (!lovableKey) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
@@ -75,9 +80,23 @@ export const Route = createFileRoute("/api/generate-image")({
           },
           body: JSON.stringify({
             model: MODEL,
-            messages: [{ role: "user", content: body.prompt }],
+            messages: [
+              {
+                role: "user",
+                content: body.baseImage
+                  ? [
+                      {
+                        type: "text",
+                        text: `Edit the attached image: ${body.prompt}. Keep everything else in the image — the subject's identity, pose, clothing, lighting, background and style — exactly the same, and apply only the requested change. Return the edited image.`,
+                      },
+                      { type: "image_url", image_url: { url: body.baseImage } },
+                    ]
+                  : body.prompt,
+              },
+            ],
             modalities: ["image", "text"],
           }),
+
         });
 
         if (!upstream.ok) {
