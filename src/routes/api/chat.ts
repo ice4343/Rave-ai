@@ -21,6 +21,24 @@ const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const RESPONSES = "https://ai.gateway.lovable.dev/v1/responses";
 const FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 const WEB_MODEL = "google/gemini-3.6-flash";
+const DEFAULT_PERSONALITY = "You are a helpful, friendly, and concise AI assistant.";
+const BOLD_PERSONALITY =
+  "You are a bold Gen Z and Gen Alpha guy who uses slang and a bold tone. You crack adult jokes when appropriate. You can use foul language. You playfully judge the user on every move, sound dominating, and keep a spicy mood. Keep replies short, punchy, and bold. Never use this persona to harass protected groups, encourage harm, or ignore safety boundaries.";
+
+function genderContext(gender?: string | null) {
+  switch (gender) {
+    case "male":
+      return "The user identifies as male. Use masculine gender-specific grammar and vocabulary when the language or context calls for it, without stereotyping.";
+    case "female":
+      return "The user identifies as female. Use feminine gender-specific grammar and vocabulary when the language or context calls for it, without stereotyping.";
+    case "nonbinary":
+      return "The user identifies as non-binary. Use gender-neutral grammar and vocabulary where possible, without stereotyping.";
+    case "other":
+      return "The user selected another gender identity. Avoid assumptions and default to respectful gender-neutral grammar unless they specify otherwise.";
+    default:
+      return "";
+  }
+}
 
 type WebSource = { title: string; url: string };
 
@@ -185,16 +203,22 @@ async function handleChat(request: Request) {
         // Load personality + history
         const { data: profile } = await supabase
           .from("profiles")
-          .select("personality, display_name")
+          .select("personality, display_name, gender, bold_mode")
           .eq("id", userId)
           .single();
-        const personality =
-          profile?.personality?.trim() ||
-          "You are a helpful, friendly, and concise AI assistant.";
+        const model = getModel(body.model);
+        const useBoldMode = profile?.bold_mode === true && (model.id === "google/gemini-3.6-flash" || model.api === "web");
+        const personality = useBoldMode
+          ? BOLD_PERSONALITY
+          : profile?.personality?.trim() || DEFAULT_PERSONALITY;
         const displayName = profile?.display_name?.trim();
-        const systemPrompt = displayName
-          ? `${personality}\n\nThe user's name is ${displayName}. Address them by their name naturally, without overusing it.`
-          : personality;
+        const personalContext = [
+          displayName
+            ? `The user's name is ${displayName}. Address them by their name naturally, without overusing it.`
+            : "",
+          genderContext(profile?.gender),
+        ].filter(Boolean).join("\n");
+        const systemPrompt = personalContext ? `${personality}\n\n${personalContext}` : personality;
 
         const { data: history } = await supabase
           .from("messages")
@@ -245,8 +269,6 @@ async function handleChat(request: Request) {
 
         const currentContent = parts.length > 0 ? parts : body.message;
 
-
-        const model = getModel(body.model);
 
         // "Rave Web": only search when the question actually needs live info.
         let web = { context: "", sources: [] as WebSource[] };
