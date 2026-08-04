@@ -22,6 +22,8 @@ import {
   User,
   Monitor,
   Layers,
+  Flame,
+  VenusAndMars,
 } from "lucide-react";
 import {
   DEFAULT_SETTINGS,
@@ -57,11 +59,16 @@ const PRESETS = [
   { name: "Code buddy", text: "You are a senior engineer. Answer with correct, minimal code and short explanations. Prefer examples over prose." },
 ];
 
+const DEFAULT_PERSONALITY = "You are a helpful, friendly, and concise AI assistant.";
+type Gender = "male" | "female" | "nonbinary" | "other" | "prefer_not_to_say" | "";
+
 function Settings() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [text, setText] = useState("");
   const [name, setName] = useState("");
+  const [gender, setGender] = useState<Gender>("");
+  const [boldMode, setBoldMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -87,7 +94,7 @@ function Settings() {
       if (!user.user) throw new Error("Not signed in");
       const { data, error } = await supabase
         .from("profiles")
-        .select("personality, display_name")
+        .select("personality, display_name, gender, bold_mode")
         .eq("id", user.user.id)
         .single();
       if (error) throw error;
@@ -98,7 +105,28 @@ function Settings() {
   useEffect(() => {
     if (data?.personality) setText(data.personality);
     if (data?.display_name) setName(data.display_name);
+    setGender((data?.gender as Gender | null) ?? "");
+    setBoldMode(data?.bold_mode ?? false);
   }, [data]);
+
+  const toggleBoldMode = async (enabled: boolean) => {
+    const previous = boldMode;
+    setBoldMode(enabled);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+      const personality = enabled ? DEFAULT_PERSONALITY : text;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ bold_mode: enabled, ...(enabled ? { personality } : {}) })
+        .eq("id", user.user.id);
+      if (error) throw error;
+      if (enabled) setText(DEFAULT_PERSONALITY);
+      await qc.invalidateQueries({ queryKey: ["profile"] });
+    } catch {
+      setBoldMode(previous);
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -108,7 +136,12 @@ function Settings() {
       const nextName = name.trim() || null;
       await supabase
         .from("profiles")
-        .update({ personality: text, display_name: nextName })
+        .update({
+          personality: boldMode ? DEFAULT_PERSONALITY : text,
+          display_name: nextName,
+          gender: gender || null,
+          bold_mode: boldMode,
+        })
         .eq("id", user.user.id);
       // Push the new name straight into the chat page's cache so the greeting
       // updates instantly, then refetch in the background.
@@ -190,16 +223,51 @@ function Settings() {
                 placeholder="What should Rave.ai call you?"
                 className="glass w-full rounded-2xl px-4 py-3.5 text-base outline-none focus:ring-2 focus:ring-ring/40"
               />
+              <div className="mt-4">
+                <SectionTitle
+                  icon={<VenusAndMars className="h-4 w-4 text-primary" />}
+                  label="Gender"
+                />
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as Gender)}
+                  className="glass w-full rounded-2xl px-4 py-3.5 text-base outline-none focus:ring-2 focus:ring-ring/40"
+                >
+                  <option value="">Not specified</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="nonbinary">Non-binary</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+                <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                  Used privately to adapt conversational grammar and vocabulary across every model.
+                </p>
+              </div>
             </Card>
 
             {/* Personality */}
             <Card>
               <SectionTitle icon={<Sparkles className="h-4 w-4 text-primary" />} label="Personality" />
+              <Toggle
+                icon={<Flame className="h-4 w-4 text-primary" />}
+                label="Bold mode"
+                hint="Short, slang-heavy, spicy replies in Rave Flash and Rave Web"
+                checked={boldMode}
+                onChange={toggleBoldMode}
+                flush
+              />
+              {boldMode && (
+                <p className="mt-3 rounded-2xl border border-[var(--glass-border)] bg-primary/10 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
+                  Bold mode replaces your custom personality while it is on.
+                </p>
+              )}
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={6}
-                className="glass w-full rounded-2xl px-4 py-3 text-base outline-none focus:ring-2 focus:ring-ring/40 resize-y"
+                disabled={boldMode}
+                className="glass mt-3 w-full rounded-2xl px-4 py-3 text-base outline-none focus:ring-2 focus:ring-ring/40 resize-y disabled:cursor-not-allowed disabled:opacity-40"
                 placeholder="Describe how Rave.ai should behave…"
               />
               <div className="mt-3 flex flex-wrap gap-2">
@@ -207,7 +275,8 @@ function Settings() {
                   <button
                     key={p.name}
                     onClick={() => setText(p.text)}
-                    className="glass text-xs rounded-full px-3 py-2 active:bg-accent/70 transition"
+                    disabled={boldMode}
+                    className="glass text-xs rounded-full px-3 py-2 active:bg-accent/70 transition disabled:opacity-40"
                   >
                     {p.name}
                   </button>
@@ -478,17 +547,19 @@ function Toggle({
   hint,
   checked,
   onChange,
+  flush = false,
 }: {
   icon: React.ReactNode;
   label: string;
   hint?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  flush?: boolean;
 }) {
   return (
     <button
       onClick={() => onChange(!checked)}
-      className="w-full flex items-center gap-3 mt-4 text-left"
+      className={`w-full flex items-center gap-3 text-left ${flush ? "" : "mt-4"}`}
       role="switch"
       aria-checked={checked}
     >
