@@ -387,7 +387,7 @@ function ChatPage() {
       </div>
 
       <div className="pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
-        <div className="max-w-2xl mx-auto px-3 pb-2 pt-1">
+        <div className="max-w-xl mx-auto px-5 sm:px-6 pb-2 pt-1">
 
           {error && (
             <div className="mb-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
