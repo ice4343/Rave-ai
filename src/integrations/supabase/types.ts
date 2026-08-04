@@ -51,22 +51,28 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bold_mode: boolean
           created_at: string
           display_name: string | null
+          gender: string | null
           id: string
           personality: string
           updated_at: string
         }
         Insert: {
+          bold_mode?: boolean
           created_at?: string
           display_name?: string | null
+          gender?: string | null
           id: string
           personality?: string
           updated_at?: string
         }
         Update: {
+          bold_mode?: boolean
           created_at?: string
           display_name?: string | null
+          gender?: string | null
           id?: string
           personality?: string
           updated_at?: string
