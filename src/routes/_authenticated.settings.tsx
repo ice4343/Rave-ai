@@ -77,13 +77,16 @@ function Settings() {
   const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
+    // Prefer the appearance stored on the account, fall back to this device.
     setSettings(loadSettings());
+    void pullAppearance().then(setSettings);
   }, []);
 
   const update = (patch: Partial<ThemeSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...patch };
       saveSettings(next);
+      void pushAppearance(next);
       return next;
     });
   };
