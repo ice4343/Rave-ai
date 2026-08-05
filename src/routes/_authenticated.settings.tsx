@@ -454,7 +454,21 @@ function Settings() {
               )}
             </Card>
 
+            {/* Bold mode */}
+            <Card>
+              <SectionTitle icon={<Flame className="h-4 w-4 text-primary" />} label="Bold mode" />
+              <Toggle
+                icon={<Flame className="h-4 w-4 text-primary" />}
+                label="Bold mode"
+                hint="Short, slang-heavy, spicy replies in Rave Flash and Rave Web"
+                checked={boldMode}
+                onChange={toggleBoldMode}
+                flush
+              />
+            </Card>
+
             {/* Account / about */}
+
             <Card>
               <SectionTitle icon={<Info className="h-4 w-4 text-primary" />} label="About" />
               <p className="text-xs text-muted-foreground leading-relaxed">
