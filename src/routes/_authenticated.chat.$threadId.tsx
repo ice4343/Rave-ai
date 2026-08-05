@@ -387,7 +387,12 @@ function ChatPage() {
       </div>
 
       <div className="pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
-        <div className="w-full max-w-lg mx-auto px-8 sm:px-10 pb-2 pt-1">
+        <div
+          className={`w-full mx-auto pb-2 pt-1 transition-[max-width,padding] duration-300 ease-out will-change-[max-width] ${
+            composerFocused ? "max-w-3xl px-2 sm:px-3" : "max-w-lg px-8 sm:px-10"
+          }`}
+        >
+
 
           {error && (
             <div className="mb-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
