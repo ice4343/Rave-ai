@@ -37,7 +37,7 @@ import {
   type Mode,
   type ThemeSettings,
 } from "@/lib/theme";
-
+import { pullAppearance, pushAppearance } from "@/lib/appearance";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -77,13 +77,16 @@ function Settings() {
   const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
+    // Prefer the appearance stored on the account, fall back to this device.
     setSettings(loadSettings());
+    void pullAppearance().then(setSettings);
   }, []);
 
   const update = (patch: Partial<ThemeSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...patch };
       saveSettings(next);
+      void pushAppearance(next);
       return next;
     });
   };
@@ -192,6 +195,7 @@ function Settings() {
     setSettings(DEFAULT_SETTINGS);
     saveSettings(DEFAULT_SETTINGS);
     applySettings(DEFAULT_SETTINGS);
+    void pushAppearance(DEFAULT_SETTINGS);
   };
 
   const signOut = async () => {

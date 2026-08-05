@@ -6,6 +6,7 @@ import { RaveMark } from "@/components/RaveMark";
 
 import { Loader2, Menu, Plus } from "lucide-react";
 import { applySettings, loadSettings } from "@/lib/theme";
+import { pullAppearance } from "@/lib/appearance";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -32,8 +33,11 @@ function Layout() {
   }, [session, loading, navigate]);
 
   useEffect(() => {
+    // Apply the device copy instantly, then reconcile with the account's saved
+    // appearance so customizations follow the login.
     applySettings(loadSettings());
-  }, []);
+    if (!loading && session) void pullAppearance();
+  }, [loading, session]);
 
   useEffect(() => {
     setSidebarOpen(false);
