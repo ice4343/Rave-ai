@@ -195,6 +195,7 @@ function Settings() {
     setSettings(DEFAULT_SETTINGS);
     saveSettings(DEFAULT_SETTINGS);
     applySettings(DEFAULT_SETTINGS);
+    void pushAppearance(DEFAULT_SETTINGS);
   };
 
   const signOut = async () => {
