@@ -30,6 +30,7 @@ import {
   SURFACE_PRESETS,
   THEME_PRESETS,
   applySettings,
+  clearSettings,
   loadSettings,
   saveSettings,
   type Density,
