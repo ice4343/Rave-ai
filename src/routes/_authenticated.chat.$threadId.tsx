@@ -544,6 +544,9 @@ function ChatPage() {
                 autosize();
               }}
               onKeyDown={onKeyDown}
+              onFocus={() => setComposerFocused(true)}
+              onBlur={() => setComposerFocused(false)}
+
               placeholder="Ask Rave.ai"
               rows={1}
               className="flex-1 resize-none bg-transparent py-2.5 px-1 text-base outline-none min-h-[40px] max-h-40 leading-snug placeholder:text-muted-foreground/70"
