@@ -249,19 +249,12 @@ function Settings() {
             {/* Personality */}
             <Card>
               <SectionTitle icon={<Sparkles className="h-4 w-4 text-primary" />} label="Personality" />
-              <Toggle
-                icon={<Flame className="h-4 w-4 text-primary" />}
-                label="Bold mode"
-                hint="Short, slang-heavy, spicy replies in Rave Flash and Rave Web"
-                checked={boldMode}
-                onChange={toggleBoldMode}
-                flush
-              />
               {boldMode && (
-                <p className="mt-3 rounded-2xl border border-[var(--glass-border)] bg-primary/10 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
+                <p className="rounded-2xl border border-[var(--glass-border)] bg-primary/10 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
                   Bold mode replaces your custom personality while it is on.
                 </p>
               )}
+
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
