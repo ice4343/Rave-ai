@@ -51,6 +51,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          appearance: Json | null
           bold_mode: boolean
           created_at: string
           display_name: string | null
@@ -60,6 +61,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          appearance?: Json | null
           bold_mode?: boolean
           created_at?: string
           display_name?: string | null
@@ -69,6 +71,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          appearance?: Json | null
           bold_mode?: boolean
           created_at?: string
           display_name?: string | null
