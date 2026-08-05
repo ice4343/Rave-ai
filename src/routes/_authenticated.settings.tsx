@@ -456,7 +456,7 @@ function Settings() {
 
             {/* Bold mode */}
             <Card>
-              <SectionTitle icon={<Flame className="h-4 w-4 text-primary" />} label="Bold mode" />
+              <SectionTitle icon={<Flame className="h-4 w-4 text-primary" />} label="Tone" />
               <Toggle
                 icon={<Flame className="h-4 w-4 text-primary" />}
                 label="Bold mode"
