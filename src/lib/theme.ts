@@ -269,3 +269,13 @@ export function saveSettings(s: ThemeSettings) {
   }
   applySettings(s);
 }
+
+/** Wipe the user's saved appearance and fall back to the app defaults. */
+export function clearSettings() {
+  try {
+    window.localStorage.removeItem(KEY);
+  } catch {
+    /* ignore */
+  }
+  applySettings(DEFAULT_SETTINGS);
+}
