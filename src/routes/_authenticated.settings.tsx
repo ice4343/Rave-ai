@@ -196,6 +196,8 @@ function Settings() {
   const signOut = async () => {
     await supabase.auth.signOut();
     qc.clear();
+    // Reset appearance so the login page always shows the default theme.
+    clearSettings();
     navigate({ to: "/" });
   };
 
