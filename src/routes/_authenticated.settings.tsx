@@ -249,19 +249,12 @@ function Settings() {
             {/* Personality */}
             <Card>
               <SectionTitle icon={<Sparkles className="h-4 w-4 text-primary" />} label="Personality" />
-              <Toggle
-                icon={<Flame className="h-4 w-4 text-primary" />}
-                label="Bold mode"
-                hint="Short, slang-heavy, spicy replies in Rave Flash and Rave Web"
-                checked={boldMode}
-                onChange={toggleBoldMode}
-                flush
-              />
               {boldMode && (
-                <p className="mt-3 rounded-2xl border border-[var(--glass-border)] bg-primary/10 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
+                <p className="rounded-2xl border border-[var(--glass-border)] bg-primary/10 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
                   Bold mode replaces your custom personality while it is on.
                 </p>
               )}
+
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -461,7 +454,21 @@ function Settings() {
               )}
             </Card>
 
+            {/* Bold mode */}
+            <Card>
+              <SectionTitle icon={<Flame className="h-4 w-4 text-primary" />} label="Tone" />
+              <Toggle
+                icon={<Flame className="h-4 w-4 text-primary" />}
+                label="Bold mode"
+                hint="Short, slang-heavy, spicy replies in Rave Flash and Rave Web"
+                checked={boldMode}
+                onChange={toggleBoldMode}
+                flush
+              />
+            </Card>
+
             {/* Account / about */}
+
             <Card>
               <SectionTitle icon={<Info className="h-4 w-4 text-primary" />} label="About" />
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -569,16 +576,19 @@ function Toggle({
         {hint && <span className="block text-[11px] text-muted-foreground">{hint}</span>}
       </span>
       <span
-        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-          checked ? "bg-primary" : "bg-muted"
+        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+          checked
+            ? "bg-primary border-primary"
+            : "bg-muted/60 border-[var(--glass-border)]"
         }`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-background transition-transform ${
-            checked ? "translate-x-[1.4rem]" : "translate-x-0.5"
+          className={`absolute top-0.5 h-5 w-5 rounded-full shadow-sm transition-transform duration-200 ${
+            checked ? "translate-x-[1.4rem] bg-primary-foreground" : "translate-x-0.5 bg-foreground/80"
           }`}
         />
       </span>
+
     </button>
   );
 }

@@ -103,6 +103,8 @@ function ChatPage() {
   const [attachment, setAttachment] = useState<string | null>(null);
   const [fileAttachment, setFileAttachment] = useState<FileAttachment | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [composerFocused, setComposerFocused] = useState(false);
+
   const [modelId, setModelId] = useState<string>(CHAT_MODELS[0].id);
   const [modelMenu, setModelMenu] = useState(false);
   const [painting, setPainting] = useState(false);
@@ -387,7 +389,12 @@ function ChatPage() {
       </div>
 
       <div className="pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
-        <div className="w-full max-w-lg mx-auto px-8 sm:px-10 pb-2 pt-1">
+        <div
+          className={`w-full mx-auto pb-2 pt-1 transition-[max-width,padding] duration-300 ease-out will-change-[max-width] ${
+            composerFocused ? "max-w-3xl px-2 sm:px-3" : "max-w-lg px-8 sm:px-10"
+          }`}
+        >
+
 
           {error && (
             <div className="mb-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -537,6 +544,9 @@ function ChatPage() {
                 autosize();
               }}
               onKeyDown={onKeyDown}
+              onFocus={() => setComposerFocused(true)}
+              onBlur={() => setComposerFocused(false)}
+
               placeholder="Ask Rave.ai"
               rows={1}
               className="flex-1 resize-none bg-transparent py-2.5 px-1 text-base outline-none min-h-[40px] max-h-40 leading-snug placeholder:text-muted-foreground/70"
