@@ -6,6 +6,7 @@ import { RaveMark } from "@/components/RaveMark";
 
 import { Loader2, Menu, Plus } from "lucide-react";
 import { applySettings, loadSettings } from "@/lib/theme";
+import { pullAppearance } from "@/lib/appearance";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
