@@ -32,8 +32,11 @@ function Layout() {
   }, [session, loading, navigate]);
 
   useEffect(() => {
+    // Apply the device copy instantly, then reconcile with the account's saved
+    // appearance so customizations follow the login.
     applySettings(loadSettings());
-  }, []);
+    if (!loading && session) void pullAppearance();
+  }, [loading, session]);
 
   useEffect(() => {
     setSidebarOpen(false);
