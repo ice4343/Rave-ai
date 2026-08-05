@@ -576,16 +576,19 @@ function Toggle({
         {hint && <span className="block text-[11px] text-muted-foreground">{hint}</span>}
       </span>
       <span
-        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-          checked ? "bg-primary" : "bg-muted"
+        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+          checked
+            ? "bg-primary border-primary"
+            : "bg-muted/60 border-[var(--glass-border)]"
         }`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-background transition-transform ${
-            checked ? "translate-x-[1.4rem]" : "translate-x-0.5"
+          className={`absolute top-0.5 h-5 w-5 rounded-full shadow-sm transition-transform duration-200 ${
+            checked ? "translate-x-[1.4rem] bg-primary-foreground" : "translate-x-0.5 bg-foreground/80"
           }`}
         />
       </span>
+
     </button>
   );
 }
