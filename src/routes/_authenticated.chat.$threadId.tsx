@@ -103,6 +103,8 @@ function ChatPage() {
   const [attachment, setAttachment] = useState<string | null>(null);
   const [fileAttachment, setFileAttachment] = useState<FileAttachment | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [composerFocused, setComposerFocused] = useState(false);
+
   const [modelId, setModelId] = useState<string>(CHAT_MODELS[0].id);
   const [modelMenu, setModelMenu] = useState(false);
   const [painting, setPainting] = useState(false);
