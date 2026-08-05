@@ -37,7 +37,7 @@ import {
   type Mode,
   type ThemeSettings,
 } from "@/lib/theme";
-
+import { pullAppearance, pushAppearance } from "@/lib/appearance";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
