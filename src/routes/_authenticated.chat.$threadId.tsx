@@ -549,7 +549,8 @@ function ChatPage() {
 
               placeholder="Ask Rave.ai"
               rows={1}
-              className="flex-1 resize-none bg-transparent py-2.5 px-1 text-base outline-none min-h-[40px] max-h-40 leading-snug placeholder:text-muted-foreground/70"
+              style={{ scrollbarWidth: "none" }}
+              className="flex-1 resize-none border-0 bg-transparent py-2.5 px-1 text-base outline-none min-h-[40px] max-h-40 leading-snug placeholder:text-muted-foreground/70 [&::-webkit-scrollbar]:hidden [&::-webkit-resizer]:hidden"
             />
             <button
               onClick={send}
@@ -557,7 +558,7 @@ function ChatPage() {
               className="shrink-0 inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition disabled:opacity-40"
               aria-label="Send"
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+              <ArrowUp className="h-5 w-5" />
             </button>
 
           </div>
