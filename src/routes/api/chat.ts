@@ -43,6 +43,64 @@ function genderContext(gender?: string | null) {
 
 type WebSource = { title: string; url: string };
 
+/**
+ * Long-term memory: pull out durable facts worth remembering across chats
+ * (preferences, relationships, goals, ongoing projects), skipping anything
+ * transient. Returns short third-person notes.
+ */
+async function extractMemories(
+  userMessage: string,
+  assistantText: string,
+  existing: string[],
+  lovableKey: string,
+): Promise<string[]> {
+  if (!userMessage.trim()) return [];
+  try {
+    const res = await fetch(GATEWAY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${lovableKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-3.1-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content: [
+              "You maintain an AI assistant's long-term memory about one user.",
+              "From the conversation turn, extract ONLY durable facts worth remembering in future chats:",
+              "stable preferences, personal details, relationships, job/studies, goals, ongoing projects, constraints.",
+              "Ignore: greetings, one-off questions, general knowledge, anything temporary or already known.",
+              "Write each memory as one short third-person sentence starting with 'User'.",
+              "Never duplicate or slightly reword an existing memory.",
+              'Reply with ONLY a JSON array of strings, e.g. ["User lives in Delhi."]. Use [] when nothing is worth saving.',
+              existing.length ? `Existing memories:\n${existing.map((m) => `- ${m}`).join("\n")}` : "Existing memories: none",
+            ].join("\n"),
+          },
+          {
+            role: "user",
+            content: `User said:\n${userMessage.slice(0, 1500)}\n\nAssistant replied:\n${assistantText.slice(0, 800)}`,
+          },
+        ],
+      }),
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const raw = json.choices?.[0]?.message?.content ?? "";
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    const parsed = JSON.parse(match[0]) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set(existing.map((m) => m.toLowerCase().trim()));
+    return parsed
+      .filter((v): v is string => typeof v === "string")
+      .map((s) => sanitize(s).trim())
+      .filter((s) => s.length > 3 && s.length <= 300 && !seen.has(s.toLowerCase()))
+      .slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
+
 /** Cheap classifier: does this prompt need fresh info from the internet? */
 async function needsWebSearch(message: string, lovableKey: string) {
   const q = message.trim();
