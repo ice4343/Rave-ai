@@ -277,7 +277,22 @@ async function handleChat(request: Request) {
             : "",
           genderContext(profile?.gender),
         ].filter(Boolean).join("\n");
-        const systemPrompt = personalContext ? `${personality}\n\n${personalContext}` : personality;
+        // Long-term memory: facts the assistant has learned in earlier chats.
+        const { data: memoryRows } = await supabase
+          .from("memories")
+          .select("content")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(60);
+        const memories = (memoryRows ?? []).map((m) => m.content).filter(Boolean);
+        const memoryBlock = memories.length
+          ? `Here is what you remember about the user from past conversations. Use it naturally when relevant, never recite it back as a list:\n${memories.map((m) => `- ${m}`).join("\n")}`
+          : "";
+
+        const systemPrompt = [personality, personalContext, memoryBlock]
+          .filter(Boolean)
+          .join("\n\n");
+
 
         const { data: history } = await supabase
           .from("messages")
