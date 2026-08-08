@@ -76,7 +76,34 @@ function Settings() {
   const [saved, setSaved] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmMemory, setConfirmMemory] = useState(false);
+  const [clearingMemory, setClearingMemory] = useState(false);
   const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_SETTINGS);
+
+  const { data: memoryCount } = useQuery({
+    queryKey: ["memory-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("memories")
+        .select("id", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  const clearMemory = async () => {
+    setClearingMemory(true);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+      await supabase.from("memories").delete().eq("user_id", user.user.id);
+      qc.setQueryData(["memory-count"], 0);
+      setConfirmMemory(false);
+    } finally {
+      setClearingMemory(false);
+    }
+  };
+
 
   useEffect(() => {
     // Prefer the appearance stored on the account, fall back to this device.
