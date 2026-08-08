@@ -23,7 +23,8 @@ const FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 const WEB_MODEL = "google/gemini-3.6-flash";
 const DEFAULT_PERSONALITY = "You are a helpful, friendly, and concise AI assistant.";
 const BOLD_PERSONALITY =
-  "You are a bold Gen Z and Gen Alpha guy who uses slang and a bold tone. You crack adult jokes when appropriate. You can use foul language. You playfully judge the user on every move, sound dominating, and keep a spicy mood. Keep replies short, punchy, and bold. Never use this persona to harass protected groups, encourage harm, or ignore safety boundaries.";
+  "You are absolutely unhinged, unfiltered American man, you are always angry, you extremely judge everything and everyone, you judge precisely, you are bold, you always use foul words and language. You always reply in short statements. You make your own decisions, you are less submissive. You dont judge on greeting messages.";
+
 
 function genderContext(gender?: string | null) {
   switch (gender) {
@@ -41,6 +42,64 @@ function genderContext(gender?: string | null) {
 }
 
 type WebSource = { title: string; url: string };
+
+/**
+ * Long-term memory: pull out durable facts worth remembering across chats
+ * (preferences, relationships, goals, ongoing projects), skipping anything
+ * transient. Returns short third-person notes.
+ */
+async function extractMemories(
+  userMessage: string,
+  assistantText: string,
+  existing: string[],
+  lovableKey: string,
+): Promise<string[]> {
+  if (!userMessage.trim()) return [];
+  try {
+    const res = await fetch(GATEWAY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${lovableKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-3.1-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content: [
+              "You maintain an AI assistant's long-term memory about one user.",
+              "From the conversation turn, extract ONLY durable facts worth remembering in future chats:",
+              "stable preferences, personal details, relationships, job/studies, goals, ongoing projects, constraints.",
+              "Ignore: greetings, one-off questions, general knowledge, anything temporary or already known.",
+              "Write each memory as one short third-person sentence starting with 'User'.",
+              "Never duplicate or slightly reword an existing memory.",
+              'Reply with ONLY a JSON array of strings, e.g. ["User lives in Delhi."]. Use [] when nothing is worth saving.',
+              existing.length ? `Existing memories:\n${existing.map((m) => `- ${m}`).join("\n")}` : "Existing memories: none",
+            ].join("\n"),
+          },
+          {
+            role: "user",
+            content: `User said:\n${userMessage.slice(0, 1500)}\n\nAssistant replied:\n${assistantText.slice(0, 800)}`,
+          },
+        ],
+      }),
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const raw = json.choices?.[0]?.message?.content ?? "";
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    const parsed = JSON.parse(match[0]) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set(existing.map((m) => m.toLowerCase().trim()));
+    return parsed
+      .filter((v): v is string => typeof v === "string")
+      .map((s) => sanitize(s).trim())
+      .filter((s) => s.length > 3 && s.length <= 300 && !seen.has(s.toLowerCase()))
+      .slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
 
 /** Cheap classifier: does this prompt need fresh info from the internet? */
 async function needsWebSearch(message: string, lovableKey: string) {
@@ -218,7 +277,22 @@ async function handleChat(request: Request) {
             : "",
           genderContext(profile?.gender),
         ].filter(Boolean).join("\n");
-        const systemPrompt = personalContext ? `${personality}\n\n${personalContext}` : personality;
+        // Long-term memory: facts the assistant has learned in earlier chats.
+        const { data: memoryRows } = await supabase
+          .from("memories")
+          .select("content")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(60);
+        const memories = (memoryRows ?? []).map((m) => m.content).filter(Boolean);
+        const memoryBlock = memories.length
+          ? `Here is what you remember about the user from past conversations. Use it naturally when relevant, never recite it back as a list:\n${memories.map((m) => `- ${m}`).join("\n")}`
+          : "";
+
+        const systemPrompt = [personality, personalContext, memoryBlock]
+          .filter(Boolean)
+          .join("\n\n");
+
 
         const { data: history } = await supabase
           .from("messages")
@@ -413,9 +487,25 @@ async function handleChat(request: Request) {
                   updates.title = title;
                 }
                 await supabase.from("threads").update(updates).eq("id", body.threadId);
+
+                // Learn durable facts from this turn so future chats remember them.
+                if (body.message && fullText.trim().length > 0) {
+                  const learned = await extractMemories(body.message, fullText, memories, lovableKey);
+                  if (learned.length > 0) {
+                    const { error: memErr } = await supabase.from("memories").insert(
+                      learned.map((content) => ({
+                        user_id: userId,
+                        content,
+                        source_thread_id: body.threadId,
+                      })),
+                    );
+                    if (memErr) console.error("memory save error", memErr.message);
+                  }
+                }
               } catch (e) {
                 console.error("save error", e);
               }
+
               controller.close();
             }
           },

@@ -12,7 +12,7 @@ export const CHAT_MODELS: ChatModel[] = [
   {
     id: "google/gemini-3.6-flash",
     name: "Rave Flash",
-    hint: "Fastest — great for everyday chat",
+    hint: "The best model to withstand with personality traits most accurately",
     api: "chat",
   },
   {
@@ -24,13 +24,13 @@ export const CHAT_MODELS: ChatModel[] = [
   {
     id: "openai/gpt-5.6-terra",
     name: "Rave GPT",
-    hint: "GPT-5.6 — balanced quality",
+    hint: "The fastest response model, withstands 40-50% of the personality traits",
     api: "responses",
   },
   {
     id: "openai/gpt-5.6-sol",
     name: "Rave GPT Max",
-    hint: "GPT-5.6 flagship — hardest tasks",
+    hint: "GPT-5.6 flagship — hardest tasks, withstands 40-50% of the personality traits",
     api: "responses",
   },
   {
@@ -40,6 +40,7 @@ export const CHAT_MODELS: ChatModel[] = [
     api: "web",
   },
 ];
+
 
 export const DEFAULT_MODEL = "rave/web";
 

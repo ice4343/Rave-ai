@@ -265,17 +265,22 @@ export const Sidebar = memo(function Sidebar({
           <Link
             to="/settings"
             onClick={onClose}
-            className="glass flex items-center gap-3 rounded-2xl px-3 py-3 text-sm active:bg-sidebar-accent/60 transition"
+            aria-label="Open settings"
+            className="glass flex items-center gap-3 rounded-2xl border border-primary/30 px-3.5 py-3.5 text-sm active:bg-sidebar-accent/60 transition"
           >
-            <div className="h-8 w-8 shrink-0 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-[11px] font-medium text-primary">
+            <div className="h-9 w-9 shrink-0 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-medium text-primary">
               {userEmail?.[0]?.toUpperCase() ?? "?"}
             </div>
-            <span className="flex-1 min-w-0 truncate text-xs text-muted-foreground">
-              {userEmail ?? "Signed in"}
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold text-foreground">Settings</span>
+              <span className="block truncate text-[11px] text-muted-foreground">
+                {userEmail ?? "Signed in"}
+              </span>
             </span>
-            <Settings className="h-4 w-4 text-muted-foreground" />
+            <Settings className="h-6 w-6 shrink-0 text-primary" />
           </Link>
         </div>
+
       </aside>
     </>
   );

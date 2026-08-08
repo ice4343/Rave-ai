@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      memories: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          source_thread_id: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          source_thread_id?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          source_thread_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memories_source_thread_id_fkey"
+            columns: ["source_thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string

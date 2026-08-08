@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft,
+  Brain,
   Check,
+
   Download,
   Droplet,
   Info,
@@ -74,7 +76,34 @@ function Settings() {
   const [saved, setSaved] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmMemory, setConfirmMemory] = useState(false);
+  const [clearingMemory, setClearingMemory] = useState(false);
   const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_SETTINGS);
+
+  const { data: memoryCount } = useQuery({
+    queryKey: ["memory-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("memories")
+        .select("id", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  const clearMemory = async () => {
+    setClearingMemory(true);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+      await supabase.from("memories").delete().eq("user_id", user.user.id);
+      qc.setQueryData(["memory-count"], 0);
+      setConfirmMemory(false);
+    } finally {
+      setClearingMemory(false);
+    }
+  };
+
 
   useEffect(() => {
     // Prefer the appearance stored on the account, fall back to this device.
@@ -461,18 +490,64 @@ function Settings() {
               )}
             </Card>
 
+            {/* Memory */}
+            <Card>
+              <SectionTitle icon={<Brain className="h-4 w-4 text-primary" />} label="Memory" />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Rave.ai remembers durable details from your chats — preferences, goals and personal
+                context — and uses them in future conversations.
+                {typeof memoryCount === "number" && (
+                  <>
+                    {" "}
+                    <span className="text-foreground">
+                      {memoryCount} {memoryCount === 1 ? "memory" : "memories"} saved.
+                    </span>
+                  </>
+                )}
+              </p>
+              {confirmMemory ? (
+                <div className="mt-3 rounded-2xl border border-destructive/40 bg-destructive/10 p-4">
+                  <p className="text-sm mb-3">Forget everything Rave.ai has learned about you?</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={clearMemory}
+                      disabled={clearingMemory}
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-destructive text-destructive-foreground py-3 text-sm font-medium disabled:opacity-60"
+                    >
+                      {clearingMemory && <Loader2 className="h-4 w-4 animate-spin" />} Delete memory
+                    </button>
+                    <button
+                      onClick={() => setConfirmMemory(false)}
+                      className="flex-1 rounded-xl border border-[var(--glass-border)] py-3 text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmMemory(true)}
+                  className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-destructive/40 text-destructive px-4 py-3.5 text-sm font-medium active:bg-destructive/10 transition"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete chat memory
+                </button>
+              )}
+            </Card>
+
             {/* Bold mode */}
             <Card>
               <SectionTitle icon={<Flame className="h-4 w-4 text-primary" />} label="Tone" />
               <Toggle
                 icon={<Flame className="h-4 w-4 text-primary" />}
                 label="Bold mode"
-                hint="Short, slang-heavy, spicy replies in Rave Flash and Rave Web"
+                hint="Short, unfiltered, heavily judgemental replies in Rave Flash and Rave Web"
                 checked={boldMode}
                 onChange={toggleBoldMode}
                 flush
               />
             </Card>
+
 
             {/* Account / about */}
 
