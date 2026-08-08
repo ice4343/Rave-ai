@@ -487,9 +487,25 @@ async function handleChat(request: Request) {
                   updates.title = title;
                 }
                 await supabase.from("threads").update(updates).eq("id", body.threadId);
+
+                // Learn durable facts from this turn so future chats remember them.
+                if (body.message && fullText.trim().length > 0) {
+                  const learned = await extractMemories(body.message, fullText, memories, lovableKey);
+                  if (learned.length > 0) {
+                    const { error: memErr } = await supabase.from("memories").insert(
+                      learned.map((content) => ({
+                        user_id: userId,
+                        content,
+                        source_thread_id: body.threadId,
+                      })),
+                    );
+                    if (memErr) console.error("memory save error", memErr.message);
+                  }
+                }
               } catch (e) {
                 console.error("save error", e);
               }
+
               controller.close();
             }
           },
