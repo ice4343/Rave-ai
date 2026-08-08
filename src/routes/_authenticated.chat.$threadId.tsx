@@ -7,7 +7,7 @@ import { ArrowUp, Loader2, Plus, ImageIcon, Paperclip, X, FileText, Check, Chevr
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import { fileToCompressedDataUrl } from "@/lib/image";
 import { loadSettings } from "@/lib/theme";
-import { CHAT_MODELS, getModel, loadModel, saveModel } from "@/lib/models";
+import { CHAT_MODELS, DEFAULT_MODEL, getModel, loadModel, saveModel } from "@/lib/models";
 
 // Auto-detect image requests so the user never has to flip a mode switch.
 const IMAGE_INTENT =
@@ -105,7 +105,7 @@ function ChatPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
 
-  const [modelId, setModelId] = useState<string>(CHAT_MODELS[0].id);
+  const [modelId, setModelId] = useState<string>(DEFAULT_MODEL);
   const [modelMenu, setModelMenu] = useState(false);
   const [painting, setPainting] = useState(false);
   const [streaming, setStreaming] = useState("");
