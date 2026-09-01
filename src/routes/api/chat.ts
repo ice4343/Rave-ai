@@ -258,27 +258,47 @@ async function handleChat(request: Request) {
         if (!lovableKey) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
 
         const supabase = makeUserClient(token);
+        const model = getModel(body.model);
+
+        // Kick off the web-search router immediately: it depends only on the
+        // prompt, so it overlaps with auth + all database reads below.
+        const routerPromise =
+          model.api === "web" && body.message && !body.image && !body.file
+            ? needsWebSearch(body.message, lovableKey)
+            : Promise.resolve(false);
+
         const { data: userData, error: userErr } = await supabase.auth.getUser(token);
         if (userErr || !userData?.user) return new Response("Unauthorized", { status: 401 });
         const userId = userData.user.id;
 
-        // Verify thread ownership
-        const { data: thread } = await supabase
-          .from("threads")
-          .select("id, title, user_id")
-          .eq("id", body.threadId)
-          .single();
+        // All reads are independent — run them in one round trip's worth of time.
+        const [threadRes, profileRes, memoryRes, historyRes] = await Promise.all([
+          supabase.from("threads").select("id, title, user_id").eq("id", body.threadId).single(),
+          supabase
+            .from("profiles")
+            .select("personality, display_name, gender, bold_mode")
+            .eq("id", userId)
+            .single(),
+          supabase
+            .from("memories")
+            .select("content")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(40),
+          supabase
+            .from("messages")
+            .select("role, content")
+            .eq("thread_id", body.threadId)
+            .order("created_at", { ascending: false })
+            .limit(24),
+        ]);
+
+        const thread = threadRes.data;
         if (!thread || thread.user_id !== userId) {
           return new Response("Thread not found", { status: 404 });
         }
 
-        // Load personality + history
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("personality, display_name, gender, bold_mode")
-          .eq("id", userId)
-          .single();
-        const model = getModel(body.model);
+        const profile = profileRes.data;
         const useBoldMode = profile?.bold_mode === true && (model.id === "google/gemini-3.6-flash" || model.api === "web");
         const personality = useBoldMode
           ? BOLD_PERSONALITY
@@ -291,13 +311,7 @@ async function handleChat(request: Request) {
           genderContext(profile?.gender),
         ].filter(Boolean).join("\n");
         // Long-term memory: facts the assistant has learned in earlier chats.
-        const { data: memoryRows } = await supabase
-          .from("memories")
-          .select("content")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(60);
-        const memories = (memoryRows ?? []).map((m) => m.content).filter(Boolean);
+        const memories = (memoryRes.data ?? []).map((m) => m.content).filter(Boolean);
         const memoryBlock = memories.length
           ? `Here is what you remember about the user from past conversations. Use it naturally when relevant, never recite it back as a list:\n${memories.map((m) => `- ${m}`).join("\n")}`
           : "";
@@ -306,14 +320,9 @@ async function handleChat(request: Request) {
           .filter(Boolean)
           .join("\n\n");
 
+        // Newest-first above (cheap indexed read) — flip back to chronological.
+        const history = (historyRes.data ?? []).slice().reverse();
 
-        const { data: history } = await supabase
-          .from("messages")
-          .select("role, content")
-          .eq("thread_id", body.threadId)
-          .order("created_at", { ascending: true });
-
-        // Save user message (attachment stored inline as markdown so it renders)
         // Save user message. Binary attachments are stored as a filename chip only —
         // never their raw bytes (Postgres rejects NUL / invalid unicode).
         const storedUserContent = sanitize(
@@ -325,13 +334,15 @@ async function handleChat(request: Request) {
             .join("")
             .trim(),
         );
-        const { error: insertErr } = await supabase.from("messages").insert({
+        // Don't block the model call on this write; it's awaited before the
+        // assistant reply is saved so ordering is still guaranteed.
+        const userInsert = supabase.from("messages").insert({
           thread_id: body.threadId,
           user_id: userId,
           role: "user",
           content: storedUserContent,
         });
-        if (insertErr) return new Response(insertErr.message, { status: 500 });
+
 
         // Strip base64 payloads out of past turns to keep requests small/fast.
         const stripImages = (t: string) =>
