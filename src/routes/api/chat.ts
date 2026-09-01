@@ -498,34 +498,43 @@ async function handleChat(request: Request) {
               // Save assistant message + optionally update title BEFORE closing the
               // stream, so the client's post-stream refetch sees the saved row.
               try {
-                if (fullText.trim().length > 0) {
-                  await supabase.from("messages").insert({
-                    thread_id: body.threadId,
-                    user_id: userId,
-                    role: "assistant",
-                    content: fullText,
-                  });
-                }
+                const done = fullText.trim().length > 0;
+                // Memory extraction is a separate model call — run it alongside
+                // the writes instead of after them, and skip it for small talk.
+                const memoryPromise =
+                  done && body.message.trim().length > 24
+                    ? extractMemories(body.message, fullText, memories, lovableKey)
+                    : Promise.resolve([] as string[]);
+
+                await userInsert;
                 const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
                 if (isFirst) {
                   const title = (body.message || "Image chat").slice(0, 60).replace(/\s+/g, " ").trim() || "New chat";
                   updates.title = title;
                 }
-                await supabase.from("threads").update(updates).eq("id", body.threadId);
+                const [learned] = await Promise.all([
+                  memoryPromise,
+                  done
+                    ? supabase.from("messages").insert({
+                        thread_id: body.threadId,
+                        user_id: userId,
+                        role: "assistant",
+                        content: fullText,
+                      })
+                    : Promise.resolve(null),
+                  supabase.from("threads").update(updates).eq("id", body.threadId),
+                ]);
 
                 // Learn durable facts from this turn so future chats remember them.
-                if (body.message && fullText.trim().length > 0) {
-                  const learned = await extractMemories(body.message, fullText, memories, lovableKey);
-                  if (learned.length > 0) {
-                    const { error: memErr } = await supabase.from("memories").insert(
-                      learned.map((content) => ({
-                        user_id: userId,
-                        content,
-                        source_thread_id: body.threadId,
-                      })),
-                    );
-                    if (memErr) console.error("memory save error", memErr.message);
-                  }
+                if (learned.length > 0) {
+                  const { error: memErr } = await supabase.from("memories").insert(
+                    learned.map((content) => ({
+                      user_id: userId,
+                      content,
+                      source_thread_id: body.threadId,
+                    })),
+                  );
+                  if (memErr) console.error("memory save error", memErr.message);
                 }
               } catch (e) {
                 console.error("save error", e);
@@ -533,6 +542,7 @@ async function handleChat(request: Request) {
 
               controller.close();
             }
+
           },
         });
 
