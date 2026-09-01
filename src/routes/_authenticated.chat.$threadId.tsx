@@ -308,9 +308,13 @@ function ChatPage() {
         setStreaming("");
       }
 
-      qc.invalidateQueries({ queryKey: ["messages", threadId] });
+      // Generated images only exist server-side, so that path must wait for the
+      // refetch; streamed text is already on screen, so reconcile in background.
+      if (wasImage) await qc.invalidateQueries({ queryKey: ["messages", threadId] });
+      else qc.invalidateQueries({ queryKey: ["messages", threadId] });
       qc.invalidateQueries({ queryKey: ["threads"] });
       setStreaming("");
+
 
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
