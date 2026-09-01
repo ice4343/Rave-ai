@@ -369,12 +369,11 @@ async function handleChat(request: Request) {
 
 
         // "Rave Web": only search when the question actually needs live info.
+        // The router already ran in parallel with the database reads above.
         let web = { context: "", sources: [] as WebSource[] };
-        let searched = false;
-        if (model.api === "web" && body.message && !body.image && !body.file) {
-          searched = await needsWebSearch(body.message, lovableKey);
-          if (searched) web = await webSearch(body.message, lovableKey);
-        }
+        const searched = await routerPromise;
+        if (searched) web = await webSearch(body.message, lovableKey);
+
         const webSystem = web.context
           ? `${systemPrompt}\n\nA web_search tool was called for this question and returned fresh results below. Answer from these results, not from memory. State the facts plainly in your own words, and do not guess or add any detail the results did not confirm — if something wasn't covered, say so. Do not print a list of sources, URLs, or bracketed citations.\n\nWeb results:\n${web.context}`
           : searched
