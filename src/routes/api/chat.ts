@@ -77,10 +77,7 @@ async function extractMemories(
 ): Promise<string[]> {
   if (!userMessage.trim()) return [];
   try {
-    const res = await fetch(GATEWAY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${lovableKey}` },
-      body: JSON.stringify({
+    const res = await geminiFetch({
         model: "google/gemini-3.1-flash-lite",
         messages: [
           {
@@ -101,8 +98,7 @@ async function extractMemories(
             content: `User said:\n${userMessage.slice(0, 1500)}\n\nAssistant replied:\n${assistantText.slice(0, 800)}`,
           },
         ],
-      }),
-    });
+      }, lovableKey);
     if (!res.ok) return [];
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = json.choices?.[0]?.message?.content ?? "";
@@ -127,10 +123,7 @@ async function needsWebSearch(message: string, lovableKey: string) {
   const q = message.trim();
   if (q.length < 3) return false;
   try {
-    const res = await fetch(GATEWAY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${lovableKey}` },
-      body: JSON.stringify({
+    const res = await geminiFetch({
         model: "google/gemini-3.1-flash-lite",
         messages: [
           {
@@ -158,8 +151,7 @@ async function needsWebSearch(message: string, lovableKey: string) {
           },
           { role: "user", content: q.slice(0, 600) },
         ],
-      }),
-    });
+      }, lovableKey);
 
     if (!res.ok) return false;
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
@@ -415,24 +407,26 @@ async function handleChat(request: Request) {
           },
         ];
 
-        const upstream = await fetch(model.api === "responses" ? RESPONSES : GATEWAY, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${lovableKey}`,
-          },
-          body: JSON.stringify(
-            model.api === "responses"
-              ? {
+        const upstream =
+          model.api === "responses"
+            ? await fetch(RESPONSES, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${lovableKey}`,
+                },
+                body: JSON.stringify({
                   model: model.id,
                   instructions: systemPrompt,
                   input: responsesInput,
                   stream: true,
                   store: false,
-                }
-              : { model: model.api === "web" ? WEB_MODEL : model.id, messages, stream: true },
-          ),
-        });
+                }),
+              })
+            : await geminiFetch(
+                { model: model.api === "web" ? WEB_MODEL : model.id, messages, stream: true },
+                lovableKey,
+              );
 
         if (!upstream.ok || !upstream.body) {
           const errText = await upstream.text();
