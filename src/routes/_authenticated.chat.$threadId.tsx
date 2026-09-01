@@ -280,17 +280,42 @@ function ChatPage() {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let acc = "";
+        let frame = 0;
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           acc += decoder.decode(value, { stream: true });
-          setStreaming(acc);
+          // Paint at most once per animation frame — token-rate setState is
+          // what makes long replies feel janky on mobile.
+          if (!frame) {
+            frame = requestAnimationFrame(() => {
+              frame = 0;
+              setStreaming(acc);
+            });
+          }
         }
+        if (frame) cancelAnimationFrame(frame);
+        // Show the finished reply straight away, then reconcile in background.
+        qc.setQueryData<Msg[]>(["messages", threadId], (old) => [
+          ...(old ?? []),
+          {
+            id: "streamed-" + Date.now(),
+            role: "assistant",
+            content: acc,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+        setStreaming("");
       }
 
-      await qc.invalidateQueries({ queryKey: ["messages", threadId] });
+      // Generated images only exist server-side, so that path must wait for the
+      // refetch; streamed text is already on screen, so reconcile in background.
+      if (wasImage) await qc.invalidateQueries({ queryKey: ["messages", threadId] });
+      else qc.invalidateQueries({ queryKey: ["messages", threadId] });
       qc.invalidateQueries({ queryKey: ["threads"] });
       setStreaming("");
+
+
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       qc.setQueryData<Msg[]>(["messages", threadId], (old) =>
