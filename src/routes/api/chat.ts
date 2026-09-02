@@ -24,23 +24,29 @@ const FIRECRAWL = "https://connector-gateway.lovable.dev/firecrawl/v2";
 // user's own Gemini key is configured; otherwise we fall back to Lovable AI.
 const GOOGLE_GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-/** One call for any Gemini model: user's Google key first, Lovable AI as fallback. */
-function geminiFetch(body: Record<string, unknown>, lovableKey: string) {
-  const googleKey = process.env.GEMINI_API_KEY;
+/**
+ * One call for any Gemini model. Lovable AI is primary because it answers the
+ * same models in ~2s, while the raw Google AI Studio endpoint on a free-tier key
+ * takes 30-60s for gemini-3.6-flash. The user's own Google key is kept as a
+ * fallback for when the Lovable gateway is unavailable or out of credits.
+ */
+async function geminiFetch(body: Record<string, unknown>, lovableKey: string) {
   const model = String(body.model ?? "");
-  if (googleKey) {
-    return fetch(GOOGLE_GATEWAY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${googleKey}` },
-      body: JSON.stringify({ ...body, model: model.replace(/^google\//, "") }),
-    });
-  }
-  return fetch(GATEWAY, {
+  const res = await fetch(GATEWAY, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${lovableKey}` },
     body: JSON.stringify(body),
   });
+  const googleKey = process.env.GEMINI_API_KEY;
+  if (res.ok || !googleKey) return res;
+  console.error("lovable gateway failed, falling back to Google key", res.status);
+  return fetch(GOOGLE_GATEWAY, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${googleKey}` },
+    body: JSON.stringify({ ...body, model: model.replace(/^google\//, "") }),
+  });
 }
+
 const WEB_MODEL = "google/gemini-3.6-flash";
 const DEFAULT_PERSONALITY = "You are a helpful, friendly, and concise AI assistant.";
 const BOLD_PERSONALITY =
