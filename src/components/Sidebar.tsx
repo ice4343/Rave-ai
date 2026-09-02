@@ -46,14 +46,20 @@ export const Sidebar = memo(function Sidebar({
 
   const { data: threads = [] } = useQuery({
     queryKey: ["threads"],
-    staleTime: 30_000,
+    staleTime: 5_000,
+    refetchInterval: 8_000,
+    refetchIntervalInBackground: false,
     queryFn: async (): Promise<Thread[]> => {
+      // Inner join: only threads that already contain at least one message.
+      // Freshly auto-created "New chat" threads stay hidden until the user
+      // actually sends something in them.
       const { data, error } = await supabase
         .from("threads")
-        .select("id, title, updated_at")
+        .select("id, title, updated_at, messages!inner(id)")
+        .limit(1, { referencedTable: "messages" })
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map(({ id, title, updated_at }) => ({ id, title, updated_at }));
     },
   });
 
